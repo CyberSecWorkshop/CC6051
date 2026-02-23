@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ethical Hacking Workshop — TCP/IP Sockets</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-dark: #003320;
+    --cyan: #00e5ff;
+    --yellow: #ffdd00;
+    --red: #ff4455;
+    --bg: #050d0a;
+    --panel: #0a1a10;
+    --border: #1a3a22;
+    --text: #b8d4be;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,136,0.015) 2px,
+      rgba(0,255,136,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Animated grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridDrift 30s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridDrift {
+    0% { background-position: 0 0; }
+    100% { background-position: 40px 40px; }
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    padding: 40px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--green), var(--cyan), var(--green));
+    animation: scanBar 3s ease-in-out infinite;
+  }
+
+  @keyframes scanBar {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .header-tag {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--green);
+    font-size: 0.75rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    animation: blink 2s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    color: var(--green);
+    text-shadow: 0 0 30px rgba(0,255,136,0.5), 0 0 60px rgba(0,255,136,0.2);
+    line-height: 1.2;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+  }
+
+  .badges {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  .badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    border: 1px solid;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .badge-green { border-color: var(--green); color: var(--green); }
+  .badge-cyan { border-color: var(--cyan); color: var(--cyan); }
+  .badge-yellow { border-color: var(--yellow); color: var(--yellow); }
+
+  /* ── SECTION ── */
+  .section {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    background: var(--green-dark);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: var(--green);
+    background: rgba(0,255,136,0.1);
+    border: 1px solid var(--green);
+    padding: 2px 8px;
+    letter-spacing: 2px;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .section-body {
+    padding: 28px;
+  }
+
+  p { margin-bottom: 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: #020a05;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    color: #a0ffb8;
+    padding: 20px;
+    margin: 16px 0;
+    overflow-x: auto;
+    line-height: 1.8;
+    white-space: pre;
+    position: relative;
+  }
+
+  .code-block .comment { color: #3a6a44; }
+  .code-block .keyword { color: var(--cyan); }
+  .code-block .string  { color: var(--yellow); }
+  .code-block .func    { color: #88ffcc; }
+
+  .code-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--green);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  /* ── DIAGRAM ── */
+  .diagram {
+    background: #020a05;
+    border: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--green);
+    padding: 24px;
+    margin: 16px 0;
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  /* ── TWO COLUMN ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  .host-card {
+    border: 1px solid var(--border);
+    padding: 20px;
+    background: #020a05;
+    position: relative;
+  }
+
+  .host-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .alice-card::before { background: var(--cyan); }
+  .bob-card::before { background: var(--green); }
+
+  .host-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .alice-card .host-name { color: var(--cyan); }
+  .bob-card .host-name { color: var(--green); }
+
+  .host-detail {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .host-detail span:first-child {
+    color: var(--green);
+    min-width: 70px;
+  }
+
+  /* ── STEPS ── */
+  .steps { list-style: none; }
+
+  .steps li {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--bg);
+    background: var(--green);
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .step-content strong {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--green);
+    font-size: 0.85rem;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .step-content p { margin: 0; font-size: 0.9rem; }
+
+  /* ── CHALLENGE BOX ── */
+  .challenge {
+    border: 1px solid var(--yellow);
+    background: rgba(255,221,0,0.04);
+    padding: 24px;
+    margin: 16px 0;
+  }
+
+  .challenge-title {
+    font-family: 'Orbitron', monospace;
+    color: var(--yellow);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .challenge ol {
+    padding-left: 20px;
+    font-size: 0.9rem;
+  }
+
+  .challenge ol li { margin-bottom: 10px; }
+
+  /* ── KEY CONCEPTS ── */
+  .concepts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .concept-card {
+    border: 1px solid var(--border);
+    background: #020a05;
+    padding: 16px;
+  }
+
+  .concept-term {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--cyan);
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .concept-def {
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* ── TERMINAL BOX ── */
+  .terminal {
+    background: #000;
+    border: 1px solid var(--border);
+    margin: 16px 0;
+    overflow: hidden;
+  }
+
+  .terminal-bar {
+    background: #111;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  .terminal-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #555;
+    margin-left: 8px;
+  }
+
+  .terminal-body {
+    padding: 16px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 2;
+    color: #a0ffb8;
+  }
+
+  .prompt { color: var(--green); }
+  .dim { color: #3a6a44; }
+  .hi { color: var(--yellow); }
+  .info { color: var(--cyan); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--cyan);
+    background: rgba(0,229,255,0.04);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 0.88rem;
+  }
+
+  .callout strong { color: var(--cyan); }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #2a4a30;
+    letter-spacing: 3px;
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+
+  /* Highlight */
+  .hl { color: var(--green); font-weight: 600; }
+  .hl-c { color: var(--cyan); }
+  .hl-y { color: var(--yellow); }
+  .hl-r { color: var(--red); }
+
+  code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--green);
+    background: rgba(0,255,136,0.08);
+    padding: 1px 6px;
+    border: 1px solid rgba(0,255,136,0.2);
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-tag">▶ Ethical Hacking Workshop // Session 03</div>
+    <h1>TCP/IP Socket Communication</h1>
+    <div class="subtitle">Building a secure channel between Alice and Bob using Python sockets</div>
+    <div class="badges">
+      <span class="badge badge-green">Python 3.x</span>
+      <span class="badge badge-cyan">TCP / IPv4</span>
+      <span class="badge badge-yellow">Networking Fundamentals</span>
+      <span class="badge badge-green">Beginner → Intermediate</span>
+    </div>
+  </header>
+
+  <!-- 1. LEARNING OBJECTIVES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Learning Objectives</span>
+    </div>
+    <div class="section-body">
+      <p>By the end of this workshop, students will be able to:</p>
+      <ul class="steps">
+        <li><span class="step-num">→</span><div class="step-content"><p>Explain the role of <span class="hl">sockets, IP addresses, and ports</span> in network communication.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Describe the <span class="hl">TCP 3-way handshake</span> (SYN / SYN-ACK / ACK) that establishes a connection.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Write a <span class="hl">Python server (Bob)</span> that binds to a port, listens, and accepts connections.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Write a <span class="hl">Python client (Alice)</span> that connects to the server and exchanges messages.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Understand why data must be <span class="hl">encoded to bytes</span> before sending over the network.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Connect this exercise to real-world <span class="hl">attack surface concepts</span> studied in previous sessions.</p></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2. KEY CONCEPTS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Key Concepts</span>
+    </div>
+    <div class="section-body">
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-term">Socket</div>
+          <div class="concept-def">One endpoint of a two-way communication channel. Think of it as a phone — you need two to have a conversation.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">IP Address</div>
+          <div class="concept-def">A unique address identifying a machine on a network. Like a street address for your computer.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Port</div>
+          <div class="concept-def">A numbered "door" on a host (0–65535). Ports let one machine run many services simultaneously. HTTP=80, HTTPS=443, SSH=22.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">TCP</div>
+          <div class="concept-def">Transmission Control Protocol. Guarantees packets arrive in order and without loss. Used for reliable communication.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">UDP</div>
+          <div class="concept-def">User Datagram Protocol. Faster but no delivery guarantee. Used in video streaming, DNS, VoIP where speed beats reliability.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Packet</div>
+          <div class="concept-def">A chunk of data with a header (source IP, dest IP, port, sequence #) and a payload (your actual message).</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Buffer</div>
+          <div class="concept-def">Temporary memory holding incoming bytes. <code>recv(1024)</code> reads up to 1024 bytes at a time from the socket.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Ephemeral Port</div>
+          <div class="concept-def">A temporary port (49152–65535) auto-assigned by the OS to the client. Bob's is fixed; Alice's is random each session.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. HOW IT WORKS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">How It Works — Connection Lifecycle</span>
+    </div>
+    <div class="section-body">
+      <p>Before any data flows, TCP performs a <span class="hl">3-way handshake</span> to establish a reliable connection:</p>
+
+      <svg viewBox="0 0 820 620" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;display:block;margin:16px auto;background:#020a05;border:1px solid #1a3a22;border-radius:2px;font-family:'Share Tech Mono',monospace;">
+        <!-- title bar -->
+        <rect x="0" y="0" width="820" height="36" fill="#0a1a10"/>
+        <line x1="0" y1="36" x2="820" y2="36" stroke="#1a3a22" stroke-width="1"/>
+        <text x="410" y="23" fill="#00ff88" font-size="12" text-anchor="middle" letter-spacing="3" font-weight="bold">TCP CONNECTION LIFECYCLE</text>
+
+        <!-- host headers -->
+        <rect x="30" y="54" width="180" height="52" fill="#0a1a10" rx="2"/>
+        <rect x="30" y="54" width="180" height="3" fill="#00e5ff"/>
+        <text x="120" y="76" fill="#00e5ff" font-size="13" text-anchor="middle" font-weight="bold">ALICE</text>
+        <text x="120" y="93" fill="#5a8a6a" font-size="10" text-anchor="middle">Client · 127.0.0.1:54321</text>
+
+        <rect x="610" y="54" width="180" height="52" fill="#0a1a10" rx="2"/>
+        <rect x="610" y="54" width="180" height="3" fill="#00ff88"/>
+        <text x="700" y="76" fill="#00ff88" font-size="13" text-anchor="middle" font-weight="bold">BOB</text>
+        <text x="700" y="93" fill="#5a8a6a" font-size="10" text-anchor="middle">Server · 127.0.0.1:9999</text>
+
+        <!-- vertical lifelines -->
+        <line x1="120" y1="110" x2="120" y2="600" stroke="#1a3a22" stroke-width="1.5" stroke-dasharray="6,4"/>
+        <line x1="700" y1="110" x2="700" y2="600" stroke="#1a3a22" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+        <!-- ① socket() labels -->
+        <text x="60" y="138" fill="#5a9a7a" font-size="10">① socket()</text>
+        <text x="706" y="138" fill="#5a9a7a" font-size="10">① socket()</text>
+        <text x="706" y="153" fill="#5a9a7a" font-size="10">② bind()</text>
+        <text x="706" y="168" fill="#5a9a7a" font-size="10">③ listen()</text>
+
+        <!-- ② connect / SYN -->
+        <text x="60" y="155" fill="#5a9a7a" font-size="10">② connect()</text>
+        <line x1="120" y1="172" x2="690" y2="185" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+        <rect x="310" y="157" width="95" height="18" fill="#020a05"/>
+        <text x="358" y="170" fill="#00e5ff" font-size="11" text-anchor="middle" font-weight="bold">SYN</text>
+
+        <!-- SYN-ACK -->
+        <text x="706" y="205" fill="#5a9a7a" font-size="10">④ accept()</text>
+        <line x1="690" y1="212" x2="120" y2="225" stroke="#00ff88" stroke-width="1.5" marker-end="url(#arr-green)"/>
+        <rect x="312" y="198" width="110" height="18" fill="#020a05"/>
+        <text x="367" y="211" fill="#00ff88" font-size="11" text-anchor="middle" font-weight="bold">SYN-ACK</text>
+
+        <!-- ACK -->
+        <line x1="120" y1="242" x2="690" y2="255" stroke="#00e5ff" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+        <rect x="310" y="227" width="95" height="18" fill="#020a05"/>
+        <text x="358" y="241" fill="#00e5ff" font-size="11" text-anchor="middle" font-weight="bold">ACK</text>
+
+        <!-- ESTABLISHED banner -->
+        <rect x="200" y="268" width="420" height="26" fill="#003320" rx="2"/>
+        <rect x="200" y="268" width="420" height="2" fill="#00ff88"/>
+        <text x="410" y="285" fill="#00ff88" font-size="11" text-anchor="middle" letter-spacing="2">✅  CHANNEL ESTABLISHED  ✅</text>
+
+        <!-- sendall / DATA → -->
+        <text x="55" y="325" fill="#5a9a7a" font-size="10">③ sendall()</text>
+        <text x="55" y="339" fill="#5a9a7a" font-size="9">"Hello Bob!"</text>
+        <line x1="120" y1="348" x2="690" y2="361" stroke="#ffdd00" stroke-width="1.5" marker-end="url(#arr-yellow)"/>
+        <rect x="295" y="333" width="155" height="18" fill="#020a05"/>
+        <text x="373" y="346" fill="#ffdd00" font-size="11" text-anchor="middle" font-weight="bold">DATA  →</text>
+        <text x="706" y="372" fill="#5a9a7a" font-size="10">⑤ recv()</text>
+
+        <!-- DATA ← -->
+        <text x="706" y="400" fill="#5a9a7a" font-size="10">⑥ sendall()</text>
+        <line x1="690" y1="408" x2="120" y2="421" stroke="#ffdd00" stroke-width="1.5" marker-end="url(#arr-yellow)"/>
+        <rect x="295" y="393" width="155" height="18" fill="#020a05"/>
+        <text x="373" y="406" fill="#ffdd00" font-size="11" text-anchor="middle" font-weight="bold">←  DATA</text>
+        <text x="60" y="432" fill="#5a9a7a" font-size="10">recv()</text>
+
+        <!-- more messages indicator -->
+        <text x="300" y="455" fill="#2a5a38" font-size="10" letter-spacing="2">· · ·  more messages  · · ·</text>
+
+        <!-- FIN -->
+        <text x="60" y="489" fill="#5a9a7a" font-size="10">close()</text>
+        <line x1="120" y1="496" x2="690" y2="509" stroke="#ff4455" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr-red)"/>
+        <rect x="310" y="480" width="95" height="18" fill="#020a05"/>
+        <text x="358" y="493" fill="#ff4455" font-size="11" text-anchor="middle" font-weight="bold">FIN</text>
+
+        <!-- FIN-ACK -->
+        <line x1="690" y1="526" x2="120" y2="539" stroke="#ff4455" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr-red)"/>
+        <rect x="295" y="511" width="140" height="18" fill="#020a05"/>
+        <text x="365" y="524" fill="#ff4455" font-size="11" text-anchor="middle" font-weight="bold">FIN-ACK</text>
+        <text x="706" y="537" fill="#5a9a7a" font-size="10">close()</text>
+
+        <!-- SESSION CLOSED banner -->
+        <rect x="200" y="553" width="420" height="26" fill="#1a0305" rx="2"/>
+        <rect x="200" y="553" width="420" height="2" fill="#ff4455"/>
+        <text x="410" y="570" fill="#ff4455" font-size="11" text-anchor="middle" letter-spacing="2">🔴  SESSION CLOSED  🔴</text>
+
+        <!-- arrowhead markers -->
+        <defs>
+          <marker id="arr-cyan" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#00e5ff"/>
+          </marker>
+          <marker id="arr-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#00ff88"/>
+          </marker>
+          <marker id="arr-yellow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ffdd00"/>
+          </marker>
+          <marker id="arr-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ff4455"/>
+          </marker>
+        </defs>
+      </svg>
+
+      <div class="two-col" style="margin-top:20px">
+        <div class="host-card alice-card">
+          <div class="host-name">Alice — Client</div>
+          <div class="host-detail"><span>Role:</span> Initiates connection</div>
+          <div class="host-detail"><span>IP:</span> 127.0.0.1</div>
+          <div class="host-detail"><span>Port:</span> Auto-assigned (e.g. 54321)</div>
+          <div class="host-detail"><span>File:</span> alice_client.py</div>
+          <div class="host-detail"><span>Key call:</span> connect()</div>
+        </div>
+        <div class="host-card bob-card">
+          <div class="host-name">Bob — Server</div>
+          <div class="host-detail"><span>Role:</span> Waits for connections</div>
+          <div class="host-detail"><span>IP:</span> 127.0.0.1</div>
+          <div class="host-detail"><span>Port:</span> Fixed at 9999</div>
+          <div class="host-detail"><span>File:</span> bob_server.py</div>
+          <div class="host-detail"><span>Key call:</span> bind() + listen() + accept()</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SETUP -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Setup &amp; Files</span>
+    </div>
+    <div class="section-body">
+      <p>No external libraries needed — Python's <code>socket</code> module is part of the standard library. Download the three provided files and open two terminal windows.</p>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <span class="terminal-title">terminal — file structure</span>
+        </div>
+        <div class="terminal-body">
+<span class="prompt">$</span> ls workshop/
+<span class="hi">bob_server.py</span>              <span class="dim"># Bob — the TCP server (run first)</span>
+<span class="hi">alice_client.py</span>            <span class="dim"># Alice — the TCP client</span>
+<span class="info">bonus_multiclient_server.py</span>  <span class="dim"># BONUS: multi-user chat server</span>
+        </div>
+      </div>
+
+      <p>To observe what's actually happening on the wire, use <strong>Wireshark</strong> or <code>tcpdump</code>:</p>
+
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <span class="terminal-title">optional — packet capture</span>
+        </div>
+        <div class="terminal-body">
+<span class="dim"># Capture only traffic on port 9999 on the loopback interface</span>
+<span class="prompt">$</span> sudo tcpdump -i lo port 9999 -A
+<span class="dim"># -i lo  = loopback interface   -A = show ASCII payload</span>
+<span class="dim"># Students can see their messages appear as raw packet data!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. RUNNING THE EXERCISE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">Running the Exercise</span>
+    </div>
+    <div class="section-body">
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Terminal 1 — Start Bob's server</strong>
+            <div class="terminal"><div class="terminal-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="terminal-title">terminal 1 — BOB</span></div><div class="terminal-body"><span class="prompt">$</span> python bob_server.py
+
+<span class="dim">=======================================================</span>
+  [BOB] 🟢 Server listening on 127.0.0.1:9999
+  [BOB] Waiting for Alice to connect...
+<span class="dim">=======================================================</span></div></div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Terminal 2 — Start Alice's client</strong>
+            <div class="terminal"><div class="terminal-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="terminal-title">terminal 2 — ALICE</span></div><div class="terminal-body"><span class="prompt">$</span> python alice_client.py
+
+  [ALICE] ✅ Connected to Bob at 127.0.0.1:9999
+  [ALICE] My ephemeral port (OS-assigned): <span class="hi">54823</span>
+  [ALICE] Full socket pair: ('127.0.0.1', 54823) ↔ ('127.0.0.1', 9999)
+<span class="dim">-------------------------------------------------------</span>
+  [ALICE] Channel open! Type your message and press Enter.
+
+  [ALICE] Message → <span class="hi">Hello Bob, this is Alice!</span></div></div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div class="step-content">
+            <strong>Back in Terminal 1 — Bob sees Alice's message and replies</strong>
+            <div class="terminal"><div class="terminal-bar"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div><span class="terminal-title">terminal 1 — BOB</span></div><div class="terminal-body">  [BOB] ✅ Alice connected!
+  [BOB] Alice's IP:             127.0.0.1
+  [BOB] Alice's Ephemeral Port: 54823
+
+  [14:32:01] 📨 Alice → Hello Bob, this is Alice!
+           └─ Raw bytes  : <span class="hi">b'Hello Bob, this is Alice!'</span>
+           └─ Payload size: 25 bytes
+
+  [BOB] Reply → <span class="hi">Hey Alice! Message received loud and clear.</span></div></div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">4</span>
+          <div class="step-content">
+            <strong>Type <code>exit</code> in either terminal to close the session cleanly</strong>
+            <p style="margin-top:8px">This sends a TCP FIN packet, gracefully tearing down the connection.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 6. CODE WALKTHROUGH -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <span class="section-title">Code Walkthrough — Key Lines</span>
+    </div>
+    <div class="section-body">
+      <p>Let's break down the most important socket API calls used in both scripts:</p>
+
+      <div class="code-label">Creating a TCP socket</div>
+      <div class="code-block"><span class="comment"># AF_INET = IPv4,  SOCK_STREAM = TCP (reliable, ordered)</span>
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+<span class="comment"># For UDP instead, you would use SOCK_DGRAM:</span>
+<span class="comment"># s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)</span></div>
+
+      <div class="code-label">Bob: Binding and listening</div>
+      <div class="code-block"><span class="comment"># Bind: claim a specific IP:PORT so the OS sends traffic here</span>
+server_socket.bind((<span class="string">"127.0.0.1"</span>, 9999))
+
+<span class="comment"># Listen: enter passive mode — queue up to 5 pending connection requests</span>
+server_socket.listen(5)
+
+<span class="comment"># Accept: BLOCK here until a client connects. Returns two values:</span>
+conn, addr = server_socket.accept()
+<span class="comment">#  conn → the dedicated socket for this client session</span>
+<span class="comment">#  addr → (ip, port) tuple of the client</span></div>
+
+      <div class="code-label">Alice: Connecting</div>
+      <div class="code-block"><span class="comment"># connect() sends a SYN packet → starts the TCP 3-way handshake</span>
+client_socket.connect((<span class="string">"127.0.0.1"</span>, 9999))
+
+<span class="comment"># The OS auto-assigns Alice's ephemeral port. We can inspect it:</span>
+my_ip, my_port = client_socket.getsockname()
+print(f<span class="string">"My port: {my_port}"</span>)  <span class="comment"># e.g. 54823</span></div>
+
+      <div class="code-label">Sending and receiving data</div>
+      <div class="code-block"><span class="comment"># ── SENDING ──────────────────────────────────────────────────────</span>
+message = <span class="string">"Hello Bob!"</span>
+
+<span class="comment"># Strings CANNOT be sent directly — network requires raw bytes.</span>
+<span class="comment"># encode("utf-8") converts the string into a bytes object.</span>
+conn.sendall(message.encode(<span class="string">"utf-8"</span>))
+<span class="comment"># sendall() loops until every byte is sent (safer than send())</span>
+
+
+<span class="comment"># ── RECEIVING ────────────────────────────────────────────────────</span>
+raw_data = conn.recv(1024)   <span class="comment"># 1024 = buffer size (bytes)</span>
+
+<span class="comment"># raw_data is a bytes object: b'Hello Bob!'</span>
+<span class="comment"># decode() converts it back to a Python string.</span>
+message = raw_data.decode(<span class="string">"utf-8"</span>)
+
+<span class="comment"># Empty bytes = connection was closed by the other end</span>
+if not raw_data:
+    print(<span class="string">"Connection closed"</span>)</div>
+
+      <div class="callout">
+        <strong>Why bytes?</strong> The network doesn't understand Python strings. Data travels as raw binary. <code>encode()</code> converts text → bytes using a character encoding (UTF-8 supports any language/emoji). <code>decode()</code> reverses it on the other end.
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. DISCUSSION QUESTIONS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <span class="section-title">Discussion Questions</span>
+    </div>
+    <div class="section-body">
+      <ul class="steps">
+        <li><span class="step-num">?</span><div class="step-content"><p>What happens if you try to run <code>alice_client.py</code> before starting Bob's server? What error do you get and why?</p></div></li>
+        <li><span class="step-num">?</span><div class="step-content"><p>Run both scripts, then open Wireshark and filter by <code>tcp.port == 9999</code>. Can you see Alice's messages in plaintext? What does this tell you about the need for <strong>encryption</strong>?</p></div></li>
+        <li><span class="step-num">?</span><div class="step-content"><p>In the week 3 lecture we studied attack networks. How could an attacker use a <strong>port scanner</strong> (like nmap) to find Bob's open port 9999? What would the scan reveal?</p></div></li>
+        <li><span class="step-num">?</span><div class="step-content"><p>What is the difference between using <code>send()</code> and <code>sendall()</code>? When would using <code>send()</code> cause a bug?</p></div></li>
+        <li><span class="step-num">?</span><div class="step-content"><p>This channel is unencrypted. How would you modify the code to encrypt messages using Python's <code>ssl</code> module or the <code>cryptography</code> library?</p></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 8. CHALLENGES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <span class="section-title">Hands-On Challenges</span>
+    </div>
+    <div class="section-body">
+
+      <div class="challenge">
+        <div class="challenge-title">⚡ CHALLENGE 1 — Cross-Machine Communication</div>
+        <ol>
+          <li>Pair up with a classmate. One of you runs <code>bob_server.py</code>, the other runs <code>alice_client.py</code>.</li>
+          <li>Change <code>BOB_HOST</code> in Alice's script to your partner's <strong>actual IP address</strong> (use <code>ip addr</code> or <code>ipconfig</code>).</li>
+          <li>Make sure no firewall is blocking port 9999. Can Alice and Bob communicate across the classroom network?</li>
+        </ol>
+      </div>
+
+      <div class="challenge">
+        <div class="challenge-title">⚡ CHALLENGE 2 — Bonus Multi-Client Server</div>
+        <ol>
+          <li>Run <code>bonus_multiclient_server.py</code> on port 9998.</li>
+          <li>Open three <code>alice_client.py</code> sessions (change PORT to 9998 in each).</li>
+          <li>Messages typed by any client broadcast to all others. This is a basic chat server!</li>
+          <li>Observe the output — how does the server handle all three clients simultaneously using <strong>threads</strong>?</li>
+        </ol>
+      </div>
+
+      <div style="border:1px solid var(--red);background:rgba(255,68,85,0.06);padding:14px 20px;margin:16px 0;display:flex;align-items:center;gap:14px;">
+        <span style="font-family:'Orbitron',monospace;font-size:1.4rem;color:var(--red);">📌</span>
+        <div>
+          <div style="font-family:'Orbitron',monospace;font-size:0.75rem;color:var(--red);font-weight:700;letter-spacing:3px;margin-bottom:4px;">HOMEWORK ASSIGNMENT</div>
+          <div style="font-size:0.88rem;color:var(--text);">The challenge below is your <strong style="color:var(--red);">take-home assignment</strong>. Complete it before the next session and submit your code along with a short explanation of how a defender would detect this type of connection.</div>
+        </div>
+      </div>
+
+      <div class="challenge">
+        <div class="challenge-title">⚡ CHALLENGE 3 — Build a Simple Backdoor (Ethical Lab Only)</div>
+        <ol>
+          <li>Modify <code>bob_server.py</code> so that instead of chatting, it executes any command it receives using Python's <code>subprocess</code> module and sends the output back.</li>
+          <li>Modify <code>alice_client.py</code> to send shell commands and display the response.</li>
+          <li>This is exactly how a <strong>reverse shell</strong> works in real attacks — understand why this is dangerous and how defenders detect it (unusual outbound connections, abnormal port usage).</li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 9. SECURITY IMPLICATIONS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <span class="section-title">Security Implications</span>
+    </div>
+    <div class="section-body">
+      <p>Understanding how sockets work is foundational to understanding attacks. Here's how today's exercise connects to real-world offensive and defensive techniques:</p>
+
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-term">Port Scanning</div>
+          <div class="concept-def">Attackers use tools like nmap to probe open ports — finding servers like Bob's. Defenders use firewalls and intrusion detection systems (IDS) to detect scans.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Sniffing</div>
+          <div class="concept-def">Unencrypted socket traffic (like ours) can be captured with Wireshark. Always use TLS/SSL in production — never send credentials in plaintext.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Reverse Shell</div>
+          <div class="concept-def">A variant of Challenge 3 — the target machine connects OUT to the attacker (bypassing inbound firewall rules). Detected by monitoring unusual outbound connections.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Bind Shell</div>
+          <div class="concept-def">Attacker binds a shell to a port on the victim. The victim is Bob; the attacker is Alice sending commands. Detected by monitoring open ports.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">DoS / SYN Flood</div>
+          <div class="concept-def">Sending thousands of SYN packets without completing the handshake fills Bob's listen queue and blocks legitimate connections. Mitigated with SYN cookies.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Defense</div>
+          <div class="concept-def">Use TLS for encryption, authenticate both endpoints, validate all input, use a firewall, and monitor network traffic with an IDS like Snort or Suricata.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Ethical Hacking Workshop // TCP-IP Sockets // For Educational Use Only // Use Responsibly
+    <br/><br/>
+    <span style="color:#3a6a44;letter-spacing:2px;">CC6051 Ethical Hacking &nbsp;·&nbsp; Fatma Yasmine Loumachi</span>
+  </footer>
+
+</div>
+</body>
+</html>
