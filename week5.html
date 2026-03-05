@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ethical Hacking Workshop — OS Fingerprinting</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-dark: #003320;
+    --cyan: #00e5ff;
+    --yellow: #ffdd00;
+    --red: #ff4455;
+    --bg: #050d0a;
+    --panel: #0a1a10;
+    --border: #1a3a22;
+    --text: #b8d4be;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,136,0.015) 2px,
+      rgba(0,255,136,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Animated grid background */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridDrift 30s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridDrift {
+    0%   { background-position: 0 0; }
+    100% { background-position: 40px 40px; }
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    padding: 40px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--green), var(--cyan), var(--green));
+    animation: scanBar 3s ease-in-out infinite;
+  }
+
+  @keyframes scanBar {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  .header-tag {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--green);
+    font-size: 0.75rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    animation: blink 2s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    color: var(--green);
+    text-shadow: 0 0 30px rgba(0,255,136,0.5), 0 0 60px rgba(0,255,136,0.2);
+    line-height: 1.2;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+  }
+
+  .badges {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  .badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    border: 1px solid;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .badge-green  { border-color: var(--green);  color: var(--green); }
+  .badge-cyan   { border-color: var(--cyan);   color: var(--cyan); }
+  .badge-yellow { border-color: var(--yellow); color: var(--yellow); }
+  .badge-red    { border-color: var(--red);    color: var(--red); }
+
+  /* ── UPDATE BANNER ── */
+  .update-banner {
+    border: 1px solid var(--yellow);
+    background: rgba(255,221,0,0.05);
+    padding: 18px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .update-banner-icon {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    color: var(--yellow);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .update-banner-text {
+    font-size: 0.88rem;
+    color: var(--text);
+  }
+
+  .update-banner-text strong { color: var(--yellow); }
+
+  /* ── SECTION ── */
+  .section {
+    border: 1px solid var(--border);
+    background: var(--panel);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    background: var(--green-dark);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: var(--green);
+    background: rgba(0,255,136,0.1);
+    border: 1px solid var(--green);
+    padding: 2px 8px;
+    letter-spacing: 2px;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .section-body { padding: 28px; }
+
+  p { margin-bottom: 14px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: #020a05;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    color: #a0ffb8;
+    padding: 20px;
+    margin: 16px 0;
+    overflow-x: auto;
+    line-height: 1.8;
+    white-space: pre;
+    position: relative;
+  }
+
+  .code-block .comment { color: #3a6a44; }
+  .code-block .keyword { color: var(--cyan); }
+  .code-block .flag    { color: var(--yellow); }
+  .code-block .output  { color: #88ffcc; }
+
+  .code-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--green);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  /* ── TERMINAL BOX ── */
+  .terminal {
+    background: #000;
+    border: 1px solid var(--border);
+    margin: 16px 0;
+    overflow: hidden;
+  }
+
+  .terminal-bar {
+    background: #111;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  .terminal-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #555;
+    margin-left: 8px;
+  }
+
+  .terminal-body {
+    padding: 16px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 2;
+    color: #a0ffb8;
+  }
+
+  .prompt { color: var(--green); }
+  .dim    { color: #3a6a44; }
+  .hi     { color: var(--yellow); }
+  .info   { color: var(--cyan); }
+  .warn   { color: var(--red); }
+
+  /* ── COMPARISON TABLE ── */
+  .comp-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.85rem;
+  }
+
+  .comp-table th {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: var(--green);
+    background: var(--green-dark);
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .comp-table td {
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .comp-table tr:nth-child(odd) td  { background: #020a05; }
+  .comp-table tr:nth-child(even) td { background: #050f08; }
+
+  .comp-table .label-col {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--cyan);
+    white-space: nowrap;
+  }
+
+  .comp-table .old-col  { color: #7a9a82; }
+  .comp-table .new-col  { color: #a0ffb8; }
+
+  /* ── STEPS ── */
+  .steps { list-style: none; }
+
+  .steps li {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--bg);
+    background: var(--green);
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .step-num.q-mark {
+    background: var(--cyan);
+    color: var(--bg);
+    font-size: 1rem;
+  }
+
+  .step-content strong {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--green);
+    font-size: 0.85rem;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .step-content p { margin: 0; font-size: 0.9rem; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--cyan);
+    background: rgba(0,229,255,0.04);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 0.88rem;
+  }
+
+  .callout strong { color: var(--cyan); }
+
+  .callout-warn {
+    border-left: 3px solid var(--yellow);
+    background: rgba(255,221,0,0.04);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 0.88rem;
+  }
+
+  .callout-warn strong { color: var(--yellow); }
+
+  .callout-red {
+    border-left: 3px solid var(--red);
+    background: rgba(255,68,85,0.04);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 0.88rem;
+  }
+
+  .callout-red strong { color: var(--red); }
+
+  /* ── KEY CONCEPTS GRID ── */
+  .concepts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .concept-card {
+    border: 1px solid var(--border);
+    background: #020a05;
+    padding: 16px;
+  }
+
+  .concept-term {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--cyan);
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .concept-def {
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* ── TWO COLUMN ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+  .tool-card {
+    border: 1px solid var(--border);
+    padding: 20px;
+    background: #020a05;
+    position: relative;
+  }
+
+  .tool-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .nmap-card::before  { background: var(--green); }
+  .p0f-card::before   { background: var(--cyan); }
+
+  .tool-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .nmap-card .tool-name { color: var(--green); }
+  .p0f-card  .tool-name { color: var(--cyan); }
+
+  .tool-detail {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    margin-bottom: 6px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .tool-detail span:first-child {
+    color: var(--green);
+    min-width: 80px;
+  }
+
+  /* ── CHALLENGE BOX ── */
+  .challenge {
+    border: 1px solid var(--yellow);
+    background: rgba(255,221,0,0.04);
+    padding: 24px;
+    margin: 16px 0;
+  }
+
+  .challenge-title {
+    font-family: 'Orbitron', monospace;
+    color: var(--yellow);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .challenge ol {
+    padding-left: 20px;
+    font-size: 0.9rem;
+  }
+
+  .challenge ol li { margin-bottom: 10px; }
+
+  /* ── QUICK REF TABLE ── */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.82rem;
+  }
+
+  .ref-table th {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    color: var(--green);
+    background: var(--green-dark);
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .ref-table td {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .ref-table tr:nth-child(odd)  td { background: #020a05; }
+  .ref-table tr:nth-child(even) td { background: #050f08; }
+
+  .ref-table .cmd-col {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--yellow);
+    white-space: nowrap;
+  }
+
+  .ref-table .desc-col { color: var(--text); }
+
+  /* Highlight */
+  .hl   { color: var(--green); font-weight: 600; }
+  .hl-c { color: var(--cyan); }
+  .hl-y { color: var(--yellow); }
+  .hl-r { color: var(--red); }
+
+  code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--green);
+    background: rgba(0,255,136,0.08);
+    padding: 1px 6px;
+    border: 1px solid rgba(0,255,136,0.2);
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: #2a4a30;
+    letter-spacing: 3px;
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-tag">▶ Ethical Hacking Workshop // Week 05</div>
+    <h1>OS Fingerprinting</h1>
+    <div class="subtitle">Identifying remote operating systems using Nmap active scanning and p0f passive analysis</div>
+    <div class="badges">
+      <span class="badge badge-green">Kali Linux 2025</span>
+      <span class="badge badge-cyan">Nmap 7.x</span>
+      <span class="badge badge-cyan">p0f v3</span>
+      <span class="badge badge-yellow">Active + Passive</span>
+      <span class="badge badge-red">Updated — xprobe2 Removed</span>
+    </div>
+  </header>
+
+  <!-- UPDATE NOTICE -->
+  <div class="update-banner">
+    <div class="update-banner-icon">⚠</div>
+    <div class="update-banner-text">
+      <strong>Workshop Updated for Kali Linux 2025.</strong> The original 2019 version of this workshop used <strong>xprobe2</strong> for active fingerprinting. xprobe2 has been removed from Kali repositories (last upstream commit: 2005) and will not run on Kali 2025. Activity 1 now uses <strong>Nmap OS detection</strong> (<code>-O</code>), the industry-standard replacement. Activity 2 uses <strong>p0f v3</strong>, which remains available and updated. Interface naming and all commands have been revised throughout.
+    </div>
+  </div>
+
+  <!-- 1. LEARNING OBJECTIVES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Learning Objectives</span>
+    </div>
+    <div class="section-body">
+      <p>By the end of this workshop, students will be able to:</p>
+      <ul class="steps">
+        <li><span class="step-num">→</span><div class="step-content"><p>Explain what <span class="hl">OS fingerprinting</span> is and why it matters to both attackers and defenders.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Distinguish between <span class="hl">active fingerprinting</span> (sends packets, faster, detectable) and <span class="hl">passive fingerprinting</span> (read-only, stealthy).</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Use <span class="hl">Nmap -O</span> to actively determine the operating system of a target host and interpret the output.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Use <span class="hl">p0f v3</span> to passively capture and analyse TCP/IP traffic to infer OS information without sending a single packet.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Correctly identify the <span class="hl">network interface</span> on Kali 2025 before running any capture tool.</p></div></li>
+        <li><span class="step-num">→</span><div class="step-content"><p>Connect fingerprinting techniques to real-world <span class="hl">attack surface enumeration</span> and defensive countermeasures.</p></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2. KEY CONCEPTS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Key Concepts</span>
+    </div>
+    <div class="section-body">
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-term">OS Fingerprinting</div>
+          <div class="concept-def">Determining which operating system runs on a remote host by analysing how its TCP/IP stack behaves — without logging in.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">TCP/IP Stack</div>
+          <div class="concept-def">Each OS implements TCP/IP slightly differently — TTL defaults, window sizes, option ordering, SYN response flags. These differences are the fingerprint.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">TTL (Time-To-Live)</div>
+          <div class="concept-def">A field in IP headers. Windows defaults to 128, Linux to 64, Cisco to 255. A blunt but fast OS indicator.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">TCP Window Size</div>
+          <div class="concept-def">The buffer size advertised in SYN packets. Different OSes use characteristic default values that can aid identification.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Active Fingerprinting</div>
+          <div class="concept-def">Sends crafted probes to the target and analyses responses. Fast and accurate — but detectable by IDS/IPS. Tool: <strong>Nmap -O</strong>.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Passive Fingerprinting</div>
+          <div class="concept-def">Listens silently to existing traffic. No packets sent to the target — nearly undetectable. Depends on observing live connections. Tool: <strong>p0f</strong>.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Promiscuous Mode</div>
+          <div class="concept-def">Forces the NIC to capture all packets on the segment, not just those addressed to your machine. Required for p0f to observe other hosts' traffic.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Ephemeral Port</div>
+          <div class="concept-def">Temporary port (49152–65535) auto-assigned by the OS for outbound connections. Visible in p0f output alongside the fixed server port.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ACTIVE VS PASSIVE + TOOL CHANGE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">Active vs Passive — What Changed in 2025</span>
+    </div>
+    <div class="section-body">
+      <p>The two fundamental approaches to fingerprinting have not changed. The tools we use have.</p>
+
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Aspect</th>
+            <th>Active Fingerprinting</th>
+            <th>Passive Fingerprinting</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="label-col">How it works</td>
+            <td>Sends crafted TCP/UDP/ICMP probes; analyses responses</td>
+            <td>Listens to existing traffic; no packets sent to target</td>
+          </tr>
+          <tr>
+            <td class="label-col">Speed</td>
+            <td>Fast — probes get immediate responses</td>
+            <td>Depends on observing live traffic</td>
+          </tr>
+          <tr>
+            <td class="label-col">Accuracy</td>
+            <td>High — deliberate probing gives clear signatures</td>
+            <td>Good — but depends on traffic quality</td>
+          </tr>
+          <tr>
+            <td class="label-col">Detectability</td>
+            <td>Easily detected by IDS/IPS</td>
+            <td>Near-undetectable — read-only</td>
+          </tr>
+          <tr>
+            <td class="label-col">Old tool (2019)</td>
+            <td class="old-col">xprobe2 — <span class="hl-r">REMOVED from Kali</span></td>
+            <td class="old-col">p0f — still available</td>
+          </tr>
+          <tr>
+            <td class="label-col">New tool (2025)</td>
+            <td class="new-col">Nmap (-O) — industry standard</td>
+            <td class="new-col">p0f v3 — updated and active</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="two-col" style="margin-top:20px">
+        <div class="tool-card nmap-card">
+          <div class="tool-name">Nmap — Active</div>
+          <div class="tool-detail"><span>Replaces:</span> xprobe2</div>
+          <div class="tool-detail"><span>Key flag:</span> -O</div>
+          <div class="tool-detail"><span>Needs:</span> sudo (raw sockets)</div>
+          <div class="tool-detail"><span>Detectable:</span> Yes — IDS will see probes</div>
+          <div class="tool-detail"><span>Install:</span> Pre-installed on Kali</div>
+        </div>
+        <div class="tool-card p0f-card">
+          <div class="tool-name">p0f — Passive</div>
+          <div class="tool-detail"><span>Status:</span> Still available in Kali</div>
+          <div class="tool-detail"><span>Key flag:</span> -i &lt;iface&gt; -p</div>
+          <div class="tool-detail"><span>Needs:</span> sudo + interface name</div>
+          <div class="tool-detail"><span>Detectable:</span> No — sends nothing</div>
+          <div class="tool-detail"><span>Install:</span> sudo apt install p0f</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. PRE-LAB SETUP -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Pre-Lab Setup</span>
+    </div>
+    <div class="section-body">
+      <p>Complete all four steps before starting the activities. Do not skip the interface check — this is the most common source of errors in Kali 2025.</p>
+
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Find your network interface name</strong>
+            <p>Kali 2025 uses predictable interface names. <code>eth0</code> may not exist. Always check first.</p>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">kali — check interface</span>
+              </div>
+              <div class="terminal-body">
+<span class="prompt">$</span> ip a
+<span class="dim">1: lo: &lt;LOOPBACK&gt; ...
+   inet 127.0.0.1/8</span>
+<span class="info">2: enp0s3: &lt;BROADCAST,MULTICAST,UP&gt; ...</span>
+   link/ether 08:00:27:xx:xx:xx
+   <span class="hi">inet 10.0.2.15/24</span> brd 10.0.2.255 scope global dynamic enp0s3
+              </div>
+            </div>
+            <p style="margin-top:8px">In this example the active interface is <code>enp0s3</code>. In VirtualBox it may be <code>eth0</code>; in VMware commonly <code>ens33</code>. <strong>Note the name — you will need it in Activity 2.</strong></p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Find the target IP address</strong>
+            <p>On the <strong>target Windows machine</strong>, open Command Prompt and run:</p>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">windows — target machine</span>
+              </div>
+              <div class="terminal-body">
+<span class="prompt">C:\&gt;</span> ipconfig
+
+Windows IP Configuration
+Ethernet adapter Ethernet:
+   IPv4 Address. . . . . : <span class="hi">10.0.2.28</span>
+              </div>
+            </div>
+            <p style="margin-top:8px">Note this IP. You will use it as <code>&lt;TARGET_IP&gt;</code> throughout this workshop.</p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div class="step-content">
+            <strong>Confirm Nmap is installed</strong>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">kali</span>
+              </div>
+              <div class="terminal-body">
+<span class="prompt">$</span> nmap --version
+<span class="output">Nmap version 7.94 ( https://nmap.org )</span>
+<span class="dim"># If missing: sudo apt update &amp;&amp; sudo apt install nmap -y</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">4</span>
+          <div class="step-content">
+            <strong>Confirm p0f is installed</strong>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">kali</span>
+              </div>
+              <div class="terminal-body">
+<span class="prompt">$</span> p0f -h
+<span class="output">--- p0f 3.09b by Michal Zalewski ---</span>
+<span class="dim"># If missing: sudo apt update &amp;&amp; sudo apt install p0f -y</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5. ACTIVITY 1 — NMAP -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">Activity 1 — Active OS Fingerprinting with Nmap</span>
+    </div>
+    <div class="section-body">
+      <p>Nmap is the most widely used network scanner in the world. Its OS detection engine sends a carefully crafted series of TCP, UDP, and ICMP probes to the target and compares the responses against a database of thousands of known OS signatures. This directly replaces xprobe2 from the original workshop — and is significantly more accurate.</p>
+
+      <div class="callout">
+        <strong>Objective:</strong> Use Nmap to actively identify the operating system of the target Windows host. Work through Parts A–D in order, observing how additional flags change the depth of information returned.
+      </div>
+
+      <!-- Part A -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART A — Basic Port Scan</span></p>
+      <p>Start with a standard port scan. This generates no OS guess yet — it simply confirms reachability and identifies open ports, which Nmap will need for OS detection in the next step.</p>
+
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Open a terminal and run the basic scan</strong>
+            <div class="code-label">equivalent to the original xprobe2 -T 1-1024 scan</div>
+            <div class="code-block"><span class="flag">$</span> nmap -p 1-1024 &lt;TARGET_IP&gt;
+
+<span class="comment"># Example output:</span>
+<span class="output">PORT    STATE SERVICE
+80/tcp  open  http
+135/tcp open  msrpc
+139/tcp open  netbios-ssn
+445/tcp open  microsoft-ds</span></div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Note the open ports</strong>
+            <p>Common open ports on a Windows host: <code>80</code> HTTP, <code>135</code> RPC, <code>139/445</code> SMB, <code>3389</code> RDP. At least one open and one closed port are required for reliable OS detection in Part B.</p>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Part B -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART B — OS Detection with -O</span></p>
+      <p>The <code>-O</code> flag enables Nmap's OS detection engine. Raw socket access is required, so you must use <code>sudo</code>.</p>
+
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Run the OS detection scan</strong>
+            <div class="code-block"><span class="flag">$</span> sudo nmap -O &lt;TARGET_IP&gt;</div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Examine the OS detection section of the output</strong>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">nmap -O output (example)</span>
+              </div>
+              <div class="terminal-body">
+<span class="dim">Device type: general purpose</span>
+<span class="info">Running: Microsoft Windows 10|11</span>
+<span class="dim">OS CPE: cpe:/o:microsoft:windows_10</span>
+<span class="hi">OS details: Microsoft Windows 10 1903 - 21H2</span>
+<span class="dim">Network Distance: 1 hop</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div class="step-content">
+            <strong>Record the result</strong>
+            <p>Note the OS name, CPE identifier, and the version range reported. If Nmap returns multiple candidates with a percentage confidence, record the top result and its percentage.</p>
+          </div>
+        </li>
+      </ul>
+
+      <div class="callout-warn">
+        <strong>Why sudo?</strong> OS fingerprinting requires raw socket access to craft and send custom TCP probes. The kernel restricts this to root. Always run Nmap with <code>sudo</code> when using <code>-O</code>, or the OS detection module will be silently skipped.
+      </div>
+
+      <!-- Part C -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART C — Forced Guess with --osscan-guess</span></p>
+      <p>When Nmap cannot make a confident determination — typically because too few open ports are available — it may refuse to print a result. The <code>--osscan-guess</code> flag forces it to print its best guess anyway, along with a confidence percentage.</p>
+
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Run the forced-guess scan</strong>
+            <div class="code-block"><span class="flag">$</span> sudo nmap -O --osscan-guess &lt;TARGET_IP&gt;</div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Compare with Part B</strong>
+            <p>Does the guess change when confidence is lower? Does the reported OS version range widen? Record your observations — this will feed into the review questions.</p>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Part D -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART D — Combined OS + Service Detection (Recommended)</span></p>
+      <p>In a real penetration test, OS detection is almost always run alongside service version detection. The <code>-sV</code> flag probes open ports to identify the software running on each one. Together, <code>-sV -O</code> gives a far more complete picture of the target.</p>
+
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Run the combined scan</strong>
+            <div class="code-block"><span class="flag">$</span> sudo nmap -sV -O &lt;TARGET_IP&gt;</div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Note the Service Info line</strong>
+            <p>At the bottom of the output, the <code>Service Info</code> line shows OS hints derived from service banners. These can supplement or confirm the OS detection result from <code>-O</code>.</p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div class="step-content">
+            <strong>Optional — run the aggressive mode scan</strong>
+            <div class="code-block"><span class="flag">$</span> sudo nmap -A &lt;TARGET_IP&gt;
+
+<span class="comment"># -A is shorthand for: -O + -sV + -sC (default scripts) + --traceroute</span>
+<span class="comment"># Most complete single-command scan — but also the noisiest and most detectable</span></div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 6. ACTIVITY 2 — P0F -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <span class="section-title">Activity 2 — Passive OS Fingerprinting with p0f</span>
+    </div>
+    <div class="section-body">
+      <p>p0f (Passive OS Fingerprinting) is a read-only network tool — it <span class="hl">never sends any packets</span>. It listens on a network interface and analyses the characteristics of packets that pass by, in particular the TCP SYN used to establish connections. From these it infers the remote OS, hop distance, and connection type.</p>
+      <p>p0f version 3 is a complete rewrite of the original codebase with significantly improved network-level fingerprinting and support for reasoning about application-layer payloads.</p>
+
+      <div class="callout">
+        <strong>Objective:</strong> Capture and analyse TCP/IP traffic passively. Identify the operating system of other hosts communicating with your machine — without sending a single packet to the target.
+      </div>
+
+      <!-- Part A -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART A — Review Available Options</span></p>
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Print the p0f help screen</strong>
+            <div class="code-block"><span class="flag">$</span> p0f -h</div>
+          </div>
+        </li>
+      </ul>
+
+      <p>The key flags used in this workshop:</p>
+      <table class="ref-table">
+        <thead>
+          <tr><th>Flag</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="cmd-col">-h</td><td class="desc-col">Display help and full list of options</td></tr>
+          <tr><td class="cmd-col">-L</td><td class="desc-col">List all available network interfaces for packet capture</td></tr>
+          <tr><td class="cmd-col">-i &lt;interface&gt;</td><td class="desc-col">Specify which interface to listen on — e.g. <code>-i eth0</code> or <code>-i enp0s3</code></td></tr>
+          <tr><td class="cmd-col">-p</td><td class="desc-col">Enable promiscuous mode — capture all packets on the network, not just those addressed to your machine</td></tr>
+          <tr><td class="cmd-col">-o &lt;file&gt;</td><td class="desc-col">Write all output to a log file for later review</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Part B -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART B — List Network Interfaces</span></p>
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Run the interface listing command</strong>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">kali — list capture interfaces</span>
+              </div>
+              <div class="terminal-body">
+<span class="prompt">$</span> p0f -L
+<span class="dim">0: lo
+   (no description)</span>
+<span class="info">1: enp0s3</span>
+   (no description)
+<span class="dim">2: any
+   Pseudo-device that captures on all interfaces</span>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Identify your active interface</strong>
+            <p>Use the same interface name you confirmed in Pre-Lab Step 1. Do not use <code>lo</code> (loopback — will only see traffic to/from your own machine). Do not blindly type <code>eth0</code>.</p>
+          </div>
+        </li>
+      </ul>
+
+      <div class="callout-red">
+        <strong>Most common mistake:</strong> typing <code>sudo p0f -i eth0 -p</code> when the interface is named <code>enp0s3</code>. p0f will fail immediately with a "No such device" error. Always verify with <code>p0f -L</code> or <code>ip a</code> first.
+      </div>
+
+      <!-- Part C -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART C — Start p0f in Promiscuous Mode</span></p>
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Start p0f — replace &lt;INTERFACE&gt; with your interface name from Part B</strong>
+            <div class="code-block"><span class="flag">$</span> sudo p0f -i &lt;INTERFACE&gt; -p
+
+<span class="comment"># Example — VirtualBox (most common):</span>
+<span class="flag">$</span> sudo p0f -i enp0s3 -p
+
+<span class="comment"># Example — VMware:</span>
+<span class="flag">$</span> sudo p0f -i ens33 -p</div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>p0f starts — but shows no output yet</strong>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">kali — p0f listening</span>
+              </div>
+              <div class="terminal-body">
+<span class="output">--- p0f 3.09b by Michal Zalewski ---
+[+] Closed 1 file descriptor.</span>
+<span class="hi">[+] Listening on interface 'enp0s3'.</span>
+<span class="output">[+] Default packet filter applied. Monitoring traffic.</span>
+<span class="dim">
+Waiting for traffic...</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+
+      <div class="callout">
+        <strong>Why no output?</strong> p0f only produces results when it observes a TCP connection being established. It is waiting for a SYN packet. You need to generate traffic in the next step for anything to appear.
+      </div>
+
+      <!-- Part D -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART D — Generate Traffic and Observe Results</span></p>
+      <p>With p0f running in one terminal, open a second terminal or the Firefox browser on Kali to generate TCP connections.</p>
+
+      <ul class="steps">
+        <li>
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <strong>Open Firefox on Kali and visit any HTTP/HTTPS address</strong>
+            <p>For example, your router's management console, a local web server, or any external site:</p>
+            <div class="code-block"><span class="comment"># Try your router admin page (if accessible on the lab network)</span>
+http://192.168.x.x
+
+<span class="comment"># Or visit a local web server running on the target machine</span>
+http://&lt;TARGET_IP&gt;</div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">2</span>
+          <div class="step-content">
+            <strong>Switch back to the p0f terminal — you should now see fingerprint results</strong>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+                <span class="terminal-title">p0f — captured fingerprint (example)</span>
+              </div>
+              <div class="terminal-body">
+<span class="dim">.-[ 192.168.1.105/54321 -&gt; 54.70.252.70/443 (syn) ]-</span>
+|
+<span class="info">| client   = 192.168.1.105/54321</span>
+<span class="hi">| os       = Linux 3.11 and newer</span>
+<span class="output">| dist     = 0</span>
+<span class="dim">| params   = generic ethernet</span>
+<span class="dim">| raw_sig  = 4:64+0:0:1460:mss*20,7:mss,sok,ts,nop,ws:df,id+:0</span>
+`----
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">3</span>
+          <div class="step-content">
+            <strong>Identify each field in the output</strong>
+            <table class="ref-table" style="margin-top:10px">
+              <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+              <tbody>
+                <tr><td class="cmd-col">client</td><td class="desc-col">IP address and ephemeral port of the machine that initiated the TCP connection</td></tr>
+                <tr><td class="cmd-col">os</td><td class="desc-col">p0f's best OS guess based on TCP SYN characteristics (TTL, window size, options)</td></tr>
+                <tr><td class="cmd-col">dist</td><td class="desc-col">Estimated hop count between p0f and the observed host. 0 = local segment</td></tr>
+                <tr><td class="cmd-col">params</td><td class="desc-col">Inferred connection medium (e.g. generic ethernet, DSL, modem, satellite)</td></tr>
+                <tr><td class="cmd-col">raw_sig</td><td class="desc-col">The raw TCP signature used for the fingerprint match — useful for manual analysis</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">4</span>
+          <div class="step-content">
+            <strong>Generate traffic from multiple sources</strong>
+            <p>Try creating connections from the target Windows machine, your host OS, and any other device on the lab network. Observe how p0f identifies each one differently. Compare the <code>os</code> field and <code>raw_sig</code> values across different hosts.</p>
+          </div>
+        </li>
+        <li>
+          <span class="step-num">5</span>
+          <div class="step-content">
+            <strong>Stop p0f when done</strong>
+            <div class="code-block"><span class="comment"># Press Ctrl+C in the p0f terminal to stop capture</span>
+<span class="flag">^C</span>
+
+<span class="output">[+] Captured 14 packets total.</span></div>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Part E -->
+      <p style="margin-top:24px"><span class="hl-c" style="font-family:'Orbitron',monospace;font-size:0.8rem;letter-spacing:2px;">PART E — Optional: Save Output to a Log File</span></p>
+      <p>For submission or later review, redirect p0f output to a file using the <code>-o</code> flag:</p>
+      <div class="code-block"><span class="flag">$</span> sudo p0f -i enp0s3 -p -o /home/kali/p0f_results.txt
+
+<span class="comment"># After capturing, view the log:</span>
+<span class="flag">$</span> cat /home/kali/p0f_results.txt</div>
+    </div>
+  </div>
+
+  <!-- 7. DISCUSSION QUESTIONS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <span class="section-title">Discussion Questions</span>
+    </div>
+    <div class="section-body">
+      <ul class="steps">
+        <li><span class="step-num q-mark">?</span><div class="step-content"><p>Nmap <code>-O</code> requires at least one open and one closed port to make a reliable OS determination. Why are both needed — what does each contribute to the fingerprinting process?</p></div></li>
+        <li><span class="step-num q-mark">?</span><div class="step-content"><p>In Part C of Activity 1, <code>--osscan-guess</code> forced Nmap to print a result even when confidence was low. What are the risks of acting on a low-confidence OS fingerprint during a penetration test?</p></div></li>
+        <li><span class="step-num q-mark">?</span><div class="step-content"><p>p0f never sends any packets to the target. What are the implications of this for an attacker conducting passive reconnaissance? What are the implications for a defender trying to detect reconnaissance activity?</p></div></li>
+        <li><span class="step-num q-mark">?</span><div class="step-content"><p>Compare the OS identification results from Nmap <code>-O</code> and p0f for the same host. Were they consistent? If they differed, what might explain the discrepancy?</p></div></li>
+        <li><span class="step-num q-mark">?</span><div class="step-content"><p>Some OSes and firewalls are specifically configured to <strong>defeat fingerprinting</strong> — by randomising TTL values, altering TCP window sizes, or changing option ordering. Name one such technique and explain how it would affect the results from both Nmap and p0f.</p></div></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 8. CHALLENGES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <span class="section-title">Hands-On Challenges</span>
+    </div>
+    <div class="section-body">
+
+      <div class="challenge">
+        <div class="challenge-title">⚡ CHALLENGE 1 — Cross-Machine Fingerprinting</div>
+        <ol>
+          <li>Pair up with a classmate. Each of you targets the other's machine using <code>sudo nmap -O</code>.</li>
+          <li>Compare what Nmap reports for a Windows host versus a Linux host. How different are the TCP signatures?</li>
+          <li>Use <code>sudo nmap -O -v --reason</code> to print the reasoning behind each OS guess — examine which specific probes produced which conclusions.</li>
+        </ol>
+      </div>
+
+      <div class="challenge">
+        <div class="challenge-title">⚡ CHALLENGE 2 — Observe the Handshake in Wireshark</div>
+        <ol>
+          <li>Start Wireshark on Kali and filter by <code>tcp.port == 9999</code> (or any port your partner's machine is using).</li>
+          <li>Run <code>sudo nmap -O &lt;TARGET_IP&gt;</code> while Wireshark is capturing.</li>
+          <li>Locate the Nmap OS probe packets in Wireshark. Can you identify the malformed/unusual packets Nmap uses to elicit OS-specific responses?</li>
+          <li>Compare these probe packets to a normal TCP 3-way handshake — what is visibly different?</li>
+        </ol>
+      </div>
+
+      <div style="border:1px solid var(--red);background:rgba(255,68,85,0.06);padding:14px 20px;margin:16px 0;display:flex;align-items:center;gap:14px;">
+        <span style="font-family:'Orbitron',monospace;font-size:1.4rem;color:var(--red);">📌</span>
+        <div>
+          <div style="font-family:'Orbitron',monospace;font-size:0.75rem;color:var(--red);font-weight:700;letter-spacing:3px;margin-bottom:4px;">HOMEWORK ASSIGNMENT</div>
+          <div style="font-size:0.88rem;color:var(--text);">The challenge below is your <strong style="color:var(--red);">take-home assignment</strong>. Complete it before the next session and submit a short written analysis alongside your screenshots.</div>
+        </div>
+      </div>
+
+      <div class="challenge">
+        <div class="challenge-title">⚡ CHALLENGE 3 — Defeat the Fingerprint</div>
+        <ol>
+          <li>Research <strong>OS fingerprint obfuscation</strong> techniques. Find one tool or method that modifies TCP/IP stack parameters to make a Linux host appear to be a Windows host (or vice versa).</li>
+          <li>Apply the technique in your lab environment and re-run <code>sudo nmap -O</code> against the modified host. Document what Nmap now reports.</li>
+          <li>Then run p0f and observe whether it is also fooled, or whether passive analysis produces a different result.</li>
+          <li>In your submission, explain: <strong>how a defender would detect</strong> that fingerprint obfuscation is being used on a host in their network.</li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 9. SECURITY IMPLICATIONS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <span class="section-title">Security Implications</span>
+    </div>
+    <div class="section-body">
+      <p>OS fingerprinting sits at the beginning of most attack chains. Understanding what it reveals — and how to limit that — is as important as knowing how to run the tools.</p>
+
+      <div class="concepts-grid">
+        <div class="concept-card">
+          <div class="concept-term">Targeted Exploitation</div>
+          <div class="concept-def">Knowing the exact OS version allows an attacker to select CVEs that apply specifically to that target. A Windows 10 1903 host has a very different attack surface to a Windows 11 23H2 host.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Reconnaissance Phase</div>
+          <div class="concept-def">Fingerprinting is a standard step in the PTES (Penetration Testing Execution Standard) and OWASP testing methodology. It precedes vulnerability scanning and exploitation.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">IDS Detection</div>
+          <div class="concept-def">Active fingerprinting (Nmap) is easily detected by Snort, Suricata, and commercial IDS/IPS. The unusual probe packets have well-known signatures. Passive tools like p0f leave no trace.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Obfuscation</div>
+          <div class="concept-def">Tools like Packet Fence, PfSense rules, or custom iptables configurations can alter TCP/IP headers to mislead fingerprinting tools — a defensive countermeasure called OS personality spoofing.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Asset Inventory</div>
+          <div class="concept-def">Defenders use the same techniques — running Nmap -O across their own network to build an accurate OS inventory and detect unauthorised or unexpected hosts.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-term">Patch Management</div>
+          <div class="concept-def">Knowing which OS versions are deployed is a prerequisite for effective patch management. If you cannot enumerate them, you cannot patch them systematically.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. QUICK REFERENCE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <span class="section-title">Quick Reference — All Commands</span>
+    </div>
+    <div class="section-body">
+      <table class="ref-table">
+        <thead>
+          <tr><th>Command</th><th>What It Does</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="cmd-col">ip a</td><td class="desc-col">List network interfaces and confirm your interface name before capturing</td></tr>
+          <tr><td class="cmd-col">p0f -L</td><td class="desc-col">List interfaces available for p0f to listen on</td></tr>
+          <tr><td class="cmd-col">nmap -p 1-1024 &lt;IP&gt;</td><td class="desc-col">Basic TCP port scan — ports 1 to 1024 (replaces xprobe2 -T scan)</td></tr>
+          <tr><td class="cmd-col">sudo nmap -O &lt;IP&gt;</td><td class="desc-col">Active OS detection via TCP/IP stack analysis</td></tr>
+          <tr><td class="cmd-col">sudo nmap -O --osscan-guess &lt;IP&gt;</td><td class="desc-col">OS detection with forced best-guess output even at low confidence</td></tr>
+          <tr><td class="cmd-col">sudo nmap -sV -O &lt;IP&gt;</td><td class="desc-col">OS detection combined with service version identification</td></tr>
+          <tr><td class="cmd-col">sudo nmap -A &lt;IP&gt;</td><td class="desc-col">Aggressive scan: OS + services + default scripts + traceroute</td></tr>
+          <tr><td class="cmd-col">sudo p0f -i &lt;IFACE&gt; -p</td><td class="desc-col">Start p0f in promiscuous mode on the specified interface</td></tr>
+          <tr><td class="cmd-col">sudo p0f -i &lt;IFACE&gt; -p -o out.txt</td><td class="desc-col">Start p0f and write all output to a log file</td></tr>
+          <tr><td class="cmd-col">Ctrl+C</td><td class="desc-col">Stop p0f capture</td></tr>
+          <tr><td class="cmd-col">sudo apt install nmap p0f -y</td><td class="desc-col">Install both tools if missing from your Kali installation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Ethical Hacking Workshop // OS Fingerprinting // For Educational Use Only // Use Responsibly
+    <br/><br/>
+    <span style="color:#3a6a44;letter-spacing:2px;">CC6051 Ethical Hacking &nbsp;·&nbsp; Fatma Yasmine Loumachi</span>
+  </footer>
+
+</div>
+</body>
+</html>
