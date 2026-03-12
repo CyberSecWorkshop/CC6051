@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC6051 – Port Scanning Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #161f30;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #ff4d6d;
+    --correct: #00ff87;
+    --wrong: #ff4d6d;
+    --text: #e2eaf4;
+    --muted: #6b7fa3;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,229,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 30% at 90% 80%, rgba(255,77,109,0.05) 0%, transparent 60%);
+  }
+
+  header {
+    text-align: center;
+    max-width: 760px;
+    margin: 0 auto 3rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.3);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-family: var(--mono);
+  }
+
+  .quiz-container {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .question-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: border-color 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+
+  .question-card.answered::before { opacity: 1; }
+  .question-card.correct-card::before { background: var(--correct); }
+  .question-card.wrong-card::before { background: var(--wrong); }
+
+  .q-number {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  .q-text {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 1.2rem;
+    color: #cdd9ee;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    color: var(--text);
+    text-align: left;
+    line-height: 1.4;
+    width: 100%;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .option-letter {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-width: 1.2rem;
+    padding-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .option.correct {
+    border-color: var(--correct);
+    background: rgba(0,255,135,0.06);
+    color: var(--correct);
+  }
+
+  .option.correct .option-letter { color: var(--correct); }
+
+  .option.wrong {
+    border-color: var(--wrong);
+    background: rgba(255,77,109,0.06);
+    color: var(--wrong);
+  }
+
+  .option.wrong .option-letter { color: var(--wrong); }
+
+  .option.reveal-correct {
+    border-color: rgba(0,255,135,0.4);
+    background: rgba(0,255,135,0.03);
+    color: var(--correct);
+  }
+
+  .option:disabled { cursor: default; }
+
+  .feedback {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    display: none;
+    border-left: 3px solid;
+  }
+
+  .feedback.show { display: block; }
+  .feedback.correct-fb { border-color: var(--correct); background: rgba(0,255,135,0.05); color: #a0ffd4; }
+  .feedback.wrong-fb { border-color: var(--wrong); background: rgba(255,77,109,0.05); color: #ffa0b2; }
+
+  .score-panel {
+    max-width: 760px;
+    margin: 2rem auto 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    display: none;
+  }
+
+  .score-panel.show { display: block; }
+
+  .score-big {
+    font-size: 4rem;
+    font-weight: 800;
+    font-family: var(--mono);
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .score-label {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .grade-badge {
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+  }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding: 10px 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .reset-btn:hover { background: rgba(0,229,255,0.1); }
+
+  .progress-bar {
+    max-width: 760px;
+    margin: 0 auto 2rem;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #00b4d8);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    max-width: 760px;
+    margin: 0 auto 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">CC6051 · Ethical Hacking · Week 6</div>
+  <h1>Port<br><span>Scanning</span></h1>
+  <p class="subtitle">20-question multiple choice quiz</p>
+</header>
+
+<div class="progress-text">
+  <span id="prog-label">0 / 20 answered</span>
+  <span id="score-label">Score: 0</span>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+<div class="quiz-container" id="quiz"></div>
+
+<div class="score-panel" id="score-panel">
+  <div class="score-big" id="final-score">0/20</div>
+  <div class="score-label">Final Score</div>
+  <div class="grade-badge" id="grade-badge"></div>
+  <br>
+  <button class="reset-btn" onclick="resetQuiz()">↺ Retake Quiz</button>
+</div>
+
+<script>
+const questions = [
+  {
+    q: "What is the primary purpose of port scanning in ethical hacking?",
+    options: [
+      "To brute-force login credentials on remote services",
+      "To identify which services are running on a host and find potential vulnerabilities",
+      "To capture packets travelling across the network",
+      "To crack encryption keys used by open services"
+    ],
+    answer: 1,
+    explanation: "Port scanning is a method of finding which services are offered by a host. It identifies open ports that could be vulnerable to attack, and ethical hackers use it to expose weaknesses before malicious actors do."
+  },
+  {
+    q: "Which of the following resources lists publicly known software vulnerabilities and can be used to research exploits against open ports?",
+    options: [
+      "Shodan and Censys",
+      "Common Vulnerabilities and Exposures (CVE) at cve.mitre.org and the National Vulnerability Database (NVD)",
+      "WHOIS and ARIN databases",
+      "Netcraft and BuiltWith"
+    ],
+    answer: 1,
+    explanation: "The CVE database (cve.mitre.org) and the US National Vulnerability Database (nvd.nist.gov) catalogue known vulnerabilities. Once an open port is identified, a tester can cross-reference these databases to find relevant exploits."
+  },
+  {
+    q: "What does a port scanner report when a port is described as 'open'?",
+    options: [
+      "A firewall is actively blocking traffic to that port",
+      "The port is not associated with any known service",
+      "The port allows access to an application and may be vulnerable to attack",
+      "The host is powered off and not responding to probes"
+    ],
+    answer: 2,
+    explanation: "An open port allows entry to an application running on the host. Open ports are the primary interest during a scan because they represent potential attack surfaces."
+  },
+  {
+    q: "What does a 'filtered' port status typically indicate?",
+    options: [
+      "The service on that port has been patched and is no longer exploitable",
+      "A firewall or packet-filtering device is controlling traffic to or from that port",
+      "The port is closed and no service is listening",
+      "The host responded with an RST packet to the probe"
+    ],
+    answer: 1,
+    explanation: "A filtered port result suggests that a firewall or similar device is permitting only specified traffic through. It neither confirms nor denies that a service is running — the probe is simply blocked."
+  },
+  {
+    q: "In a SYN scan, why is it considered 'stealthy'?",
+    options: [
+      "It encrypts all probe packets so they cannot be inspected",
+      "It uses ICMP rather than TCP, which most firewalls ignore",
+      "It sends the first part of a TCP handshake but never completes it, so no full connection is logged",
+      "It disguises itself as legitimate HTTP traffic"
+    ],
+    answer: 2,
+    explanation: "A SYN scan (also called a half-open scan) sends a SYN packet. If the port is open, a SYN/ACK is returned, but the scanner immediately sends an RST to tear down the connection before it is fully established — leaving fewer log entries than a full connect scan."
+  },
+  {
+    q: "Which port scan type completes the full TCP three-way handshake, making it the most likely to be logged by the target?",
+    options: [
+      "SYN scan",
+      "NULL scan",
+      "Connect scan",
+      "FIN scan"
+    ],
+    answer: 2,
+    explanation: "The Connect scan completes the three-way handshake (SYN → SYN/ACK → ACK) just like a normal application would. This makes it reliable but also trackable, as the full connection appears in the target's logs."
+  },
+  {
+    q: "In a NULL scan, all TCP flags are turned off. What does receiving no response to a NULL probe typically indicate?",
+    options: [
+      "The port is definitely closed",
+      "The target host is offline",
+      "The port is likely open, as closed ports respond with an RST whereas open ports silently drop the packet",
+      "A firewall has intercepted the packet"
+    ],
+    answer: 2,
+    explanation: "In a NULL scan, a closed port responds with an RST/ACK packet. If no response is received, the port is likely open — the service simply ignores the malformed probe. This behaviour is defined in RFC 793 and works best against Unix/Linux systems."
+  },
+  {
+    q: "An XMAS scan sets which combination of TCP flags?",
+    options: [
+      "SYN, ACK, and RST",
+      "FIN, PSH, and URG",
+      "SYN and FIN",
+      "ACK and PSH"
+    ],
+    answer: 1,
+    explanation: "An XMAS scan lights up the FIN, PSH, and URG flags simultaneously — like a Christmas tree, hence the name. A closed port responds with RST; an open port typically drops the packet silently."
+  },
+  {
+    q: "What is the main purpose of an ACK scan?",
+    options: [
+      "To identify services running on well-known ports",
+      "To bypass packet-filtering firewalls and determine whether stateful filtering is in place",
+      "To enumerate usernames on a remote SSH server",
+      "To conduct a denial-of-service attack against the target"
+    ],
+    answer: 1,
+    explanation: "An ACK scan sends an ACK packet, which is normally only sent during an established session. If an RST is returned, there is likely no packet-filtering device on that path. It is used to map firewall rule sets rather than discover open ports."
+  },
+  {
+    q: "In a UDP scan, what response indicates that a port is closed?",
+    options: [
+      "A SYN/ACK packet from the target",
+      "No response at all",
+      "An ICMP 'Port Unreachable' message",
+      "An RST packet with the FIN flag set"
+    ],
+    answer: 2,
+    explanation: "Because UDP is connectionless, a closed UDP port causes the host to return an ICMP 'Port Unreachable' message. No response usually means the port is open or filtered, since many services simply discard unrecognised UDP packets."
+  },
+  {
+    q: "Why should security testers scan ALL ports on a target, not just well-known ports?",
+    options: [
+      "Well-known ports are always protected by firewalls and never vulnerable",
+      "Services can be configured to run on non-standard ports, so restricting the scan risks missing vulnerabilities",
+      "Scanning only well-known ports takes longer than scanning all 65,535 ports",
+      "Nmap only supports scanning the full port range"
+    ],
+    answer: 1,
+    explanation: "Attackers and administrators alike can configure services on non-standard ports. Restricting a scan to well-known ports (0–1023) risks missing services deliberately hidden on higher port numbers."
+  },
+  {
+    q: "Nmap was originally written for which publication?",
+    options: [
+      "2600: The Hacker Quarterly",
+      "Phrack magazine",
+      "The SANS Reading Room",
+      "IEEE Security & Privacy"
+    ],
+    answer: 1,
+    explanation: "Nmap was originally written by Gordon Lyon (Fyodor) and introduced in Phrack magazine. It has since become one of the most widely used and respected port-scanning tools in the security industry."
+  },
+  {
+    q: "What is Zenmap?",
+    options: [
+      "A standalone vulnerability scanner that replaces Nmap",
+      "A GUI front end for Nmap that makes working with complex command-line options easier",
+      "A packet-capture tool built on top of Wireshark",
+      "A web application scanner similar to ZAP"
+    ],
+    answer: 1,
+    explanation: "Zenmap is the official graphical front end for Nmap. It makes it easier to build, save, and visualise Nmap commands and results without needing to memorise the full command-line syntax."
+  },
+  {
+    q: "What does the Nmap command 'nmap 193.145.85.201' do by default?",
+    options: [
+      "Performs a UDP scan of the top 100 ports on that IP address",
+      "Scans every port on the host at that IP address using a SYN scan",
+      "Pings the host to check whether it is alive before scanning",
+      "Performs a version detection scan against common service ports"
+    ],
+    answer: 1,
+    explanation: "Running nmap followed by an IP address performs a default TCP SYN scan of the most common ports on that host, reporting which are open, closed, or filtered."
+  },
+  {
+    q: "What is the purpose of a ping sweep in network reconnaissance?",
+    options: [
+      "To capture credentials from authentication traffic on the network",
+      "To identify which IP addresses in a range correspond to active, live hosts",
+      "To discover all services running on a single target host",
+      "To perform a denial-of-service attack using ICMP flood packets"
+    ],
+    answer: 1,
+    explanation: "A ping sweep sends ICMP Echo Requests across a range of IP addresses. Hosts that reply are considered active. This allows a tester to build a list of live targets before conducting deeper port scans."
+  },
+  {
+    q: "Which of the following is a limitation of ping sweeps that could lead to false negatives?",
+    options: [
+      "ICMP packets are too large to traverse most routers",
+      "Hosts that are powered off, or networks configured to block ICMP, will not respond — making active hosts appear offline",
+      "Ping sweeps can only be run as the root user",
+      "The technique only works on IPv6 networks"
+    ],
+    answer: 1,
+    explanation: "Ping sweeps can produce false negatives because powered-off hosts cannot respond, and many networks and firewalls are configured to drop ICMP Echo Requests entirely. A lack of response does not guarantee a host is inactive."
+  },
+  {
+    q: "What distinguishes fping from a standard ping command?",
+    options: [
+      "Fping only works on Windows systems",
+      "Fping can ping multiple IP addresses simultaneously and accepts a range of addresses or an input file",
+      "Fping performs TCP probes rather than ICMP, making it more reliable",
+      "Fping is a GUI tool included with Zenmap"
+    ],
+    answer: 1,
+    explanation: "Fping is included in Kali Linux and can ping a range of IP addresses simultaneously. It accepts both a range specified at the command line (using the -g flag) and an input file containing multiple addresses, making it ideal for large-scale ping sweeps."
+  },
+  {
+    q: "What is the correct fping command to sweep the IP range 192.168.185.1 through 192.168.185.5 without using an input file?",
+    options: [
+      "fping --range 192.168.185.1-192.168.185.5",
+      "fping -s 192.168.185.1 192.168.185.5",
+      "fping -g 192.168.185.1 192.168.185.5",
+      "fping -i 192.168.185.1 192.168.185.5"
+    ],
+    answer: 2,
+    explanation: "The -g flag tells fping to generate a target list from a start and end IP address. The command 'fping -g 192.168.185.1 192.168.185.5' pings all five addresses in that range without requiring a separate input file."
+  },
+  {
+    q: "What makes hping a more powerful tool than a standard ping command for security testing?",
+    options: [
+      "Hping can only send ICMP packets, which are ignored by most firewalls",
+      "Hping allows users to craft and inject modified IP packets, enabling it to bypass filtering devices and conduct advanced probes",
+      "Hping is a passive tool that captures traffic without sending any packets",
+      "Hping integrates directly with Nessus to import scan results"
+    ],
+    answer: 1,
+    explanation: "Hping supports many parameters and allows users to inject custom-crafted IP packets. This makes it useful for performing ping sweeps, testing firewall rules, and bypassing filtering devices that would block standard ICMP probes."
+  },
+  {
+    q: "Why is shell scripting valuable in port scanning and security testing workflows?",
+    options: [
+      "Scripts allow the tester to break encryption without manual effort",
+      "Scripts automatically patch the vulnerabilities discovered during a scan",
+      "Scripts automate repetitive tasks — such as generating IP address lists or chaining scan commands — saving significant time",
+      "Scripts replace the need for tools like Nmap or fping entirely"
+    ],
+    answer: 2,
+    explanation: "Shell scripting (similar to DOS batch programming) automates repetitive command sequences. In security testing, this is particularly useful for tasks like generating thousands of IP addresses for a ping sweep input file, removing the need to type them manually."
+  }
+];
+
+let answered = 0;
+let score = 0;
+
+function buildQuiz() {
+  const container = document.getElementById('quiz');
+  container.innerHTML = '';
+  answered = 0;
+  score = 0;
+  updateProgress();
+
+  questions.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = `card-${i}`;
+
+    const letters = ['A', 'B', 'C', 'D'];
+
+    card.innerHTML = `
+      <div class="q-number">Question ${String(i+1).padStart(2,'0')} / 20</div>
+      <div class="q-text">${q.q}</div>
+      <div class="options">
+        ${q.options.map((opt, j) => `
+          <button class="option" data-q="${i}" data-opt="${j}" onclick="selectAnswer(${i},${j})">
+            <span class="option-letter">${letters[j]}</span>
+            <span>${opt}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="feedback" id="fb-${i}"></div>
+    `;
+    container.appendChild(card);
+  });
+
+  document.getElementById('score-panel').classList.remove('show');
+}
+
+function selectAnswer(qIndex, optIndex) {
+  const q = questions[qIndex];
+  const card = document.getElementById(`card-${qIndex}`);
+  const buttons = card.querySelectorAll('.option');
+  const fb = document.getElementById(`fb-${qIndex}`);
+
+  buttons.forEach(b => b.disabled = true);
+
+  const isCorrect = optIndex === q.answer;
+
+  buttons[optIndex].classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    buttons[q.answer].classList.add('reveal-correct');
+  }
+
+  card.classList.add('answered', isCorrect ? 'correct-card' : 'wrong-card');
+
+  fb.className = `feedback show ${isCorrect ? 'correct-fb' : 'wrong-fb'}`;
+  fb.innerHTML = `${isCorrect ? '✓ Correct' : '✗ Incorrect'} — ${q.explanation}`;
+
+  if (isCorrect) score++;
+  answered++;
+  updateProgress();
+
+  if (answered === questions.length) {
+    setTimeout(showScore, 600);
+  }
+}
+
+function updateProgress() {
+  document.getElementById('prog-label').textContent = `${answered} / 20 answered`;
+  document.getElementById('score-label').textContent = `Score: ${score}`;
+  document.getElementById('progress-fill').style.width = `${(answered / 20) * 100}%`;
+}
+
+function showScore() {
+  const panel = document.getElementById('score-panel');
+  const pct = Math.round((score / 20) * 100);
+  document.getElementById('final-score').textContent = `${score}/20`;
+
+  const badge = document.getElementById('grade-badge');
+  let grade, color;
+  if (pct >= 90)      { grade = 'Excellent — A'; color = '#00ff87'; }
+  else if (pct >= 75) { grade = 'Good — B';       color = '#00e5ff'; }
+  else if (pct >= 60) { grade = 'Pass — C';        color = '#ffd700'; }
+  else                { grade = 'Needs Revision — F'; color = '#ff4d6d'; }
+
+  badge.textContent = grade;
+  badge.style.background = color + '15';
+  badge.style.border = `1px solid ${color}`;
+  badge.style.color = color;
+
+  panel.classList.add('show');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  buildQuiz();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+buildQuiz();
+</script>
+</body>
+</html>
