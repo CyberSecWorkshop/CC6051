@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC6051 – Enumeration Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #161f30;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #ff4d6d;
+    --correct: #00ff87;
+    --wrong: #ff4d6d;
+    --text: #e2eaf4;
+    --muted: #6b7fa3;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(0,229,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 30% at 90% 80%, rgba(255,77,109,0.05) 0%, transparent 60%);
+  }
+
+  header {
+    text-align: center;
+    max-width: 760px;
+    margin: 0 auto 3rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,255,0.3);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-family: var(--mono);
+  }
+
+  .quiz-container {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .question-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: border-color 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .question-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+
+  .question-card.answered::before { opacity: 1; }
+  .question-card.correct-card::before { background: var(--correct); }
+  .question-card.wrong-card::before { background: var(--wrong); }
+
+  .q-number {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  .q-text {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 1.2rem;
+    color: #cdd9ee;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    color: var(--text);
+    text-align: left;
+    line-height: 1.4;
+    width: 100%;
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .option-letter {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-width: 1.2rem;
+    padding-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .option.correct {
+    border-color: var(--correct);
+    background: rgba(0,255,135,0.06);
+    color: var(--correct);
+  }
+
+  .option.correct .option-letter { color: var(--correct); }
+
+  .option.wrong {
+    border-color: var(--wrong);
+    background: rgba(255,77,109,0.06);
+    color: var(--wrong);
+  }
+
+  .option.wrong .option-letter { color: var(--wrong); }
+
+  .option.reveal-correct {
+    border-color: rgba(0,255,135,0.4);
+    background: rgba(0,255,135,0.03);
+    color: var(--correct);
+  }
+
+  .option:disabled { cursor: default; }
+
+  .feedback {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    display: none;
+    border-left: 3px solid;
+  }
+
+  .feedback.show { display: block; }
+  .feedback.correct-fb { border-color: var(--correct); background: rgba(0,255,135,0.05); color: #a0ffd4; }
+  .feedback.wrong-fb { border-color: var(--wrong); background: rgba(255,77,109,0.05); color: #ffa0b2; }
+
+  .score-panel {
+    max-width: 760px;
+    margin: 2rem auto 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    display: none;
+  }
+
+  .score-panel.show { display: block; }
+
+  .score-big {
+    font-size: 4rem;
+    font-weight: 800;
+    font-family: var(--mono);
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .score-label {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .grade-badge {
+    display: inline-block;
+    padding: 6px 20px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+  }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding: 10px 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .reset-btn:hover { background: rgba(0,229,255,0.1); }
+
+  .progress-bar {
+    max-width: 760px;
+    margin: 0 auto 2rem;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #00b4d8);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .progress-text {
+    max-width: 760px;
+    margin: 0 auto 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">CC6051 · Ethical Hacking · Week 8</div>
+  <h1>Enum<br><span>eration</span></h1>
+  <p class="subtitle">20-question multiple choice quiz</p>
+</header>
+
+<div class="progress-text">
+  <span id="prog-label">0 / 20 answered</span>
+  <span id="score-label">Score: 0</span>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+<div class="quiz-container" id="quiz"></div>
+
+<div class="score-panel" id="score-panel">
+  <div class="score-big" id="final-score">0/20</div>
+  <div class="score-label">Final Score</div>
+  <div class="grade-badge" id="grade-badge"></div>
+  <br>
+  <button class="reset-btn" onclick="resetQuiz()">↺ Retake Quiz</button>
+</div>
+
+<script>
+const questions = [
+  {
+    q: "What is the formal definition of enumeration in the context of ethical hacking?",
+    options: [
+      "Establishing active connections to target hosts in order to discover potential attack vectors",
+      "Passively collecting publicly available information about a target from open sources",
+      "Scanning a range of IP addresses to identify which hosts are live on a network",
+      "Exploiting a discovered vulnerability to gain initial access to a target system"
+    ],
+    answer: 0,
+    explanation: "Enumeration involves making an active connection to the target host — not just observing from a distance. The goal is to extract structured, actionable information such as usernames and shared resources that feeds directly into exploitation."
+  },
+  {
+    q: "Which three ports does NetBIOS operate on?",
+    options: [
+      "TCP 80, TCP 443, and UDP 53 for web and name resolution traffic",
+      "UDP 137, UDP 138, and TCP 139 for name, datagram, and session services",
+      "TCP 22, TCP 23, and UDP 161 for remote access and management traffic",
+      "UDP 69, TCP 445, and TCP 3389 for file transfer and remote desktop use"
+    ],
+    answer: 1,
+    explanation: "NetBIOS uses UDP 137 for name services, UDP 138 for datagram services, and TCP 139 for session services. Seeing any of these ports open during a scan tells you NetBIOS is active and worth enumerating further."
+  },
+  {
+    q: "What does the 16th character of a NetBIOS name represent?",
+    options: [
+      "The workgroup or domain the machine has joined on the local network",
+      "The IP address subnet the machine was assigned during network boot",
+      "The type of service the machine is advertising on the network",
+      "The operating system version running on the target machine"
+    ],
+    answer: 2,
+    explanation: "The user sets only 15 characters of a NetBIOS name. The 16th is a hexadecimal suffix automatically appended by NetBIOS to identify the service type — whether the machine is a workstation, file server, domain controller, and so on."
+  },
+  {
+    q: "Which NetBIOS suffix identifies a machine as a domain controller, making it a high-priority enumeration target?",
+    options: [
+      "0x00, which identifies the Workstation Service on a standard networked machine",
+      "0x03, which identifies the Messenger Service used for internal notifications",
+      "0x20, which identifies the File Server Service on machines sharing resources",
+      "0x1C, which identifies domain controller membership within a Windows domain"
+    ],
+    answer: 3,
+    explanation: "0x1C is the domain controller suffix. Domain controllers hold every account credential and group policy in the domain, making them the most valuable target on a Windows network. Enumerating this suffix tells you exactly where to focus further effort."
+  },
+  {
+    q: "What is a null session in the context of Windows enumeration?",
+    options: [
+      "An unauthenticated SMB connection that older Windows systems permitted without credentials",
+      "A session opened using a guest account configured with read-only access permissions",
+      "An encrypted tunnel established between two machines using expired certificates",
+      "A connection attempt that fails and returns no error message to the requesting client"
+    ],
+    answer: 0,
+    explanation: "A null session is an unauthenticated connection over SMB — no username or password required. Older Windows systems allowed these by default and would return usernames, group membership, and shared resources to anyone who asked."
+  },
+  {
+    q: "From which version of Windows was the null session vulnerability disabled by default?",
+    options: [
+      "Windows XP Service Pack 2, following a widely publicised security bulletin from Microsoft",
+      "Windows Server 2003, which shipped with null sessions disabled in its default configuration",
+      "Windows Vista, the first consumer release to restrict anonymous NetBIOS connections",
+      "Windows 2000, which introduced a local security policy blocking anonymous enumeration"
+    ],
+    answer: 1,
+    explanation: "Null sessions were disabled by default in Windows Server 2003. They were still present in Windows XP, and are not available at all in Vista and Server 2008 onwards. Legacy environments may still expose this vulnerability."
+  },
+  {
+    q: "What type of information can an attacker extract through a null session on a vulnerable Windows system?",
+    options: [
+      "Encrypted file contents stored in shared folders that are accessible over the network",
+      "The complete Active Directory schema including object class definitions and attributes",
+      "Usernames, group membership, shared resources, and the system password policy",
+      "Private keys stored in the Windows certificate store and the system credential vault"
+    ],
+    answer: 2,
+    explanation: "Null sessions historically exposed usernames, group membership, share names, and password policy settings — including minimum length and lockout thresholds. That username list is directly usable in a password spray attack."
+  },
+  {
+    q: "What does SNMP stand for, and what is its designed purpose?",
+    options: [
+      "Secure Network Monitoring Protocol, designed to encrypt management plane traffic",
+      "System and Network Management Procedure for administering remote infrastructure",
+      "Standard Network Management Platform used for enterprise configuration compliance",
+      "Simple Network Management Protocol, designed for remote monitoring of network devices"
+    ],
+    answer: 3,
+    explanation: "SNMP is a management protocol that lets administrators query devices remotely for status information — CPU load, memory, interface statistics, version numbers, and more. It was designed for legitimate administration but is frequently misconfigured."
+  },
+  {
+    q: "What are the default SNMP community strings that are almost universally left unchanged on deployed devices?",
+    options: [
+      "'public' for read-only access and 'private' for read-write access",
+      "'admin' for read-only access and 'administrator' for read-write access",
+      "'guest' for read-only access and 'root' for read-write access",
+      "'monitor' for read-only access and 'manager' for read-write access"
+    ],
+    answer: 0,
+    explanation: "SNMP versions 1 and 2c use community strings as shared passwords. The defaults — 'public' for read and 'private' for write — are almost never changed. An attacker simply sends a query using 'public' and receives a full data dump in return."
+  },
+  {
+    q: "On which port does SNMP listen for standard management queries?",
+    options: [
+      "TCP port 443, shared with HTTPS to reduce the number of open firewall rules",
+      "UDP port 161, used by SNMP agents to receive incoming management requests",
+      "TCP port 139, shared with the NetBIOS session service on Windows systems",
+      "UDP port 53, shared with DNS to limit the visible open port count on devices"
+    ],
+    answer: 1,
+    explanation: "SNMP agents listen on UDP port 161. When you see this port open during a scan, it is a strong signal to attempt SNMP enumeration using default community strings. UDP port 162 is used for SNMP trap notifications going the other direction."
+  },
+  {
+    q: "Which version of SNMP introduced proper authentication and encryption to address community string weaknesses?",
+    options: [
+      "SNMP version 1.5, released as a security patch addressing known plaintext weaknesses",
+      "SNMP version 2b, developed specifically to secure Unix and Linux server environments",
+      "SNMP version 3, which added user-based authentication and encrypted communications",
+      "SNMP version 2c, updated to include MD5-based hashing of community string values"
+    ],
+    answer: 2,
+    explanation: "SNMP version 3 introduced proper user-based authentication and encrypted communications. However, its adoption has been slow, and versions 1 and 2c — both vulnerable to community string attacks — remain widely deployed."
+  },
+  {
+    q: "Which tool in Kali Linux is used to scan a subnet for NetBIOS name information across multiple hosts?",
+    options: [
+      "nmap, used with the --script nbstat flag to enumerate NetBIOS details per host",
+      "enum4linux, which queries SMB shares and user accounts across Windows targets",
+      "netdiscover, which sends ARP requests to identify live hosts on a local subnet",
+      "NBTscan, which sends NetBIOS status queries across an entire IP address range"
+    ],
+    answer: 3,
+    explanation: "NBTscan queries every IP in a given CIDR range for NetBIOS name information. For each responding host it returns the machine name, service suffix, MAC address, and logged-in username — giving you a network-wide picture from a single command."
+  },
+  {
+    q: "What is the correct nbtstat syntax to retrieve the NetBIOS name table of a remote Windows machine?",
+    options: [
+      "nbtstat -a followed by the IP address of the target machine being queried",
+      "netstat -n followed by the target IP address and the NetBIOS port number",
+      "nbtstat -r followed by the hostname registered in the local DNS namespace",
+      "net view /query followed by the target's IP address and its domain name"
+    ],
+    answer: 0,
+    explanation: "nbtstat -a <IP> sends a NetBIOS adapter status request to the target and returns its full name table. This is a built-in Windows command — no additional tools needed — and it reveals the machine's name, registered services, and suffix codes."
+  },
+  {
+    q: "What does NBTscan return for each host that responds to its NetBIOS queries?",
+    options: [
+      "A list of open TCP ports, associated service names, and version banner strings",
+      "The NetBIOS name, service suffix, MAC address, and currently logged-in username",
+      "The full routing table, ARP cache, and active connection list of the target host",
+      "A vulnerability severity score based on services detected during the name query"
+    ],
+    answer: 1,
+    explanation: "NBTscan returns the NetBIOS name, its service suffix, the host's MAC address, and the username of whoever is currently logged in. Across a whole subnet, this gives you a rapid network inventory with service roles and active users in one pass."
+  },
+  {
+    q: "What is the key distinction between port scanning and enumeration in the ethical hacking methodology?",
+    options: [
+      "Port scanning requires written authorisation while enumeration is legally unrestricted",
+      "Port scanning is passive and non-intrusive while enumeration requires physical access",
+      "Port scanning identifies open ports while enumeration actively extracts data from services",
+      "Port scanning targets only external hosts while enumeration is limited to internal ranges"
+    ],
+    answer: 2,
+    explanation: "Port scanning tells you which doors are open. Enumeration steps inside and reads what is there. Enumeration makes active connections, attempts to query services, and extracts structured data such as usernames and shares — making it significantly more intrusive."
+  },
+  {
+    q: "Why are domain controllers considered the highest-value targets when enumerating a Windows environment?",
+    options: [
+      "They run more services than workstations and therefore expose a much larger attack surface",
+      "They are typically less well-patched than user workstations in most enterprise environments",
+      "They are usually positioned at the network perimeter with direct exposure to the internet",
+      "They hold every domain account credential and group policy for the entire Windows domain"
+    ],
+    answer: 3,
+    explanation: "Domain controllers store the complete Active Directory database — every account, hash, group membership, and policy for the entire domain. Compromising a domain controller is effectively full domain compromise, which is why attackers prioritise them during enumeration."
+  },
+  {
+    q: "What type of network information can SNMP expose that is directly useful for building a network map?",
+    options: [
+      "Routing tables, interface configurations, and ARP tables mapping IP addresses to MACs",
+      "Encrypted private keys stored inside the device's hardware security module",
+      "User passwords stored in plaintext when the target device has debug mode enabled",
+      "Active firewall rules and access control lists applied to each network interface"
+    ],
+    answer: 0,
+    explanation: "SNMP can return routing tables, interface configurations, and ARP tables that map IP addresses to MAC addresses. Combined, this data lets an attacker reconstruct the network topology — knowing what is connected where — without ever leaving the enumeration phase."
+  },
+  {
+    q: "Which mitigation most directly reduces the risk of null session exploitation on a Windows network?",
+    options: [
+      "Enforcing complex password policies with a minimum length of fourteen characters",
+      "Disabling NetBIOS on systems that do not require it and closing ports 139 and 445",
+      "Deploying a web application firewall to filter inbound SMB traffic at the perimeter",
+      "Enabling full-disk encryption on all drives to prevent unauthorised data extraction"
+    ],
+    answer: 1,
+    explanation: "The most direct mitigation is to disable NetBIOS on systems that do not need it and verify that ports 139 and 445 are closed or firewalled. If the protocol is not running and the ports are not reachable, null session attacks cannot be attempted."
+  },
+  {
+    q: "What does the Windows 'net view' command return when used during enumeration of a local network?",
+    options: [
+      "The IP routing table and default gateway configuration of the local machine",
+      "All active TCP connections and listening ports on the machine being queried",
+      "Machines and shared resources that are visible on the local network or domain",
+      "The NetBIOS name table and registered service suffixes for a specified remote host"
+    ],
+    answer: 2,
+    explanation: "'net view' lists machines visible on the network and the shared resources they are advertising. It is a built-in Windows command that requires no additional tools and can quickly reveal file shares, printer shares, and other exposed resources across the domain."
+  },
+  {
+    q: "What is the primary advantage of running Nessus with valid credentials during a vulnerability assessment?",
+    options: [
+      "It reduces overall scan time by skipping network-level unauthenticated service probes",
+      "It permits the scanner to automatically patch identified vulnerabilities on the target",
+      "It enables assessment of internet-facing assets that are outside the agreed scope",
+      "It allows inspection of installed software versions, patch levels, and local configuration"
+    ],
+    answer: 3,
+    explanation: "A credentialed Nessus scan logs into the target and inspects it from the inside — checking installed software, applied patches, registry settings, and local configuration. This gives a far more accurate picture of the actual attack surface than an unauthenticated external scan."
+  }
+];
+
+let answered = 0;
+let score = 0;
+
+function buildQuiz() {
+  const container = document.getElementById('quiz');
+  container.innerHTML = '';
+  answered = 0;
+  score = 0;
+  updateProgress();
+
+  questions.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = `card-${i}`;
+
+    const letters = ['A', 'B', 'C', 'D'];
+
+    card.innerHTML = `
+      <div class="q-number">Question ${String(i+1).padStart(2,'0')} / 20</div>
+      <div class="q-text">${q.q}</div>
+      <div class="options">
+        ${q.options.map((opt, j) => `
+          <button class="option" data-q="${i}" data-opt="${j}" onclick="selectAnswer(${i},${j})">
+            <span class="option-letter">${letters[j]}</span>
+            <span>${opt}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="feedback" id="fb-${i}"></div>
+    `;
+    container.appendChild(card);
+  });
+
+  document.getElementById('score-panel').classList.remove('show');
+}
+
+function selectAnswer(qIndex, optIndex) {
+  const q = questions[qIndex];
+  const card = document.getElementById(`card-${qIndex}`);
+  const buttons = card.querySelectorAll('.option');
+  const fb = document.getElementById(`fb-${qIndex}`);
+
+  buttons.forEach(b => b.disabled = true);
+
+  const isCorrect = optIndex === q.answer;
+
+  buttons[optIndex].classList.add(isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    buttons[q.answer].classList.add('reveal-correct');
+  }
+
+  card.classList.add('answered', isCorrect ? 'correct-card' : 'wrong-card');
+
+  fb.className = `feedback show ${isCorrect ? 'correct-fb' : 'wrong-fb'}`;
+  fb.innerHTML = `${isCorrect ? '✓ Correct' : '✗ Incorrect'} — ${q.explanation}`;
+
+  if (isCorrect) score++;
+  answered++;
+  updateProgress();
+
+  if (answered === questions.length) {
+    setTimeout(showScore, 600);
+  }
+}
+
+function updateProgress() {
+  document.getElementById('prog-label').textContent = `${answered} / 20 answered`;
+  document.getElementById('score-label').textContent = `Score: ${score}`;
+  document.getElementById('progress-fill').style.width = `${(answered / 20) * 100}%`;
+}
+
+function showScore() {
+  const panel = document.getElementById('score-panel');
+  const pct = Math.round((score / 20) * 100);
+  document.getElementById('final-score').textContent = `${score}/20`;
+
+  const badge = document.getElementById('grade-badge');
+  let grade, color;
+  if (pct >= 90)      { grade = 'Excellent — A'; color = '#00ff87'; }
+  else if (pct >= 75) { grade = 'Good — B';       color = '#00e5ff'; }
+  else if (pct >= 60) { grade = 'Pass — C';        color = '#ffd700'; }
+  else                { grade = 'Needs Revision — F'; color = '#ff4d6d'; }
+
+  badge.textContent = grade;
+  badge.style.background = color + '15';
+  badge.style.border = `1px solid ${color}`;
+  badge.style.color = color;
+
+  panel.classList.add('show');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  buildQuiz();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+buildQuiz();
+</script>
+</body>
+</html>
