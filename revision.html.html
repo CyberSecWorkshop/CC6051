@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CC6051 – Full Exam Quiz Weeks 1–10</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap');
+  :root{
+    --bg:#f7f6f2;--card:#ffffff;--border:#dddbd4;
+    --correct:#1a6b3c;--correct-bg:#edf7f1;--correct-border:#a8d5bc;
+    --wrong:#b01c1c;--wrong-bg:#fdf0f0;--wrong-border:#f0b8b8;
+    --reveal:#1a5c6b;--reveal-bg:#edf5f7;--reveal-border:#a8cfd8;
+    --text:#1a1a1a;--muted:#7a7870;
+    --mono:'IBM Plex Mono',monospace;--serif:'DM Serif Display',serif;--sans:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding:3rem 1rem 5rem;}
+  header{text-align:center;max-width:720px;margin:0 auto 3rem;border-bottom:1.5px solid var(--border);padding-bottom:2rem;}
+  .tag{display:inline-block;font-family:var(--mono);font-size:.65rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:1rem;}
+  h1{font-family:var(--serif);font-size:clamp(2rem,5vw,3rem);font-weight:400;line-height:1.15;margin-bottom:.4rem;}
+  .subtitle{color:var(--muted);font-size:.88rem;font-family:var(--mono);letter-spacing:.05em;}
+  .meta-row{max-width:720px;margin:0 auto .6rem;display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem;color:var(--muted);}
+  .progress-bar{max-width:720px;margin:0 auto 2.5rem;height:2px;background:var(--border);border-radius:1px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--text);transition:width .4s ease;width:0%;}
+  .week-header{max-width:720px;margin:2.5rem auto 1rem;display:flex;align-items:center;gap:1rem;}
+  .week-label{font-family:var(--mono);font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);white-space:nowrap;padding:3px 10px;border:1px solid var(--border);border-radius:2px;}
+  .week-line{flex:1;height:1px;background:var(--border);}
+  .quiz-container{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:1rem;}
+  .question-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1.5rem 1.5rem 1.5rem 1.75rem;position:relative;transition:border-color .25s;}
+  .question-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--border);border-radius:6px 0 0 6px;transition:background .3s;}
+  .question-card.correct-card::before{background:var(--correct);}
+  .question-card.wrong-card::before{background:var(--wrong);}
+  .question-card.correct-card{border-color:var(--correct-border);}
+  .question-card.wrong-card{border-color:var(--wrong-border);}
+  .q-number{font-family:var(--mono);font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem;}
+  .q-text{font-size:.97rem;font-weight:500;line-height:1.55;margin-bottom:1.1rem;color:var(--text);}
+  .options{display:flex;flex-direction:column;gap:.45rem;}
+  .option{display:flex;align-items:flex-start;gap:.75rem;padding:.65rem .9rem;border:1px solid var(--border);border-radius:5px;cursor:pointer;transition:all .18s;background:var(--bg);font-family:var(--sans);font-size:.875rem;color:var(--text);text-align:left;line-height:1.45;width:100%;}
+  .option:hover:not(:disabled){border-color:var(--text);background:#f0efe9;}
+  .option-letter{font-family:var(--mono);font-size:.65rem;color:var(--muted);min-width:1.1rem;padding-top:2px;flex-shrink:0;}
+  .option.correct{border-color:var(--correct-border);background:var(--correct-bg);color:var(--correct);}
+  .option.correct .option-letter{color:var(--correct);}
+  .option.wrong{border-color:var(--wrong-border);background:var(--wrong-bg);color:var(--wrong);}
+  .option.wrong .option-letter{color:var(--wrong);}
+  .option.reveal-correct{border-color:var(--reveal-border);background:var(--reveal-bg);color:var(--reveal);}
+  .option.reveal-correct .option-letter{color:var(--reveal);}
+  .option:disabled{cursor:default;}
+  .feedback{margin-top:.9rem;padding:.75rem 1rem;border-radius:4px;font-family:var(--mono);font-size:.75rem;line-height:1.65;display:none;border-left:3px solid;}
+  .feedback.show{display:block;}
+  .feedback.correct-fb{border-color:var(--correct);background:var(--correct-bg);color:var(--correct);}
+  .feedback.wrong-fb{border-color:var(--wrong);background:var(--wrong-bg);color:var(--wrong);}
+  .score-panel{max-width:720px;margin:2.5rem auto 0;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:2.5rem 2rem;text-align:center;display:none;}
+  .score-panel.show{display:block;}
+  .score-big{font-family:var(--serif);font-size:4.5rem;font-weight:400;color:var(--text);line-height:1;margin-bottom:.3rem;}
+  .score-label{color:var(--muted);font-size:.78rem;font-family:var(--mono);letter-spacing:.1em;margin-bottom:1.5rem;text-transform:uppercase;}
+  .grade-badge{display:inline-block;padding:6px 20px;border-radius:3px;font-family:var(--mono);font-size:.75rem;letter-spacing:.12em;margin-bottom:1.8rem;text-transform:uppercase;}
+  .reset-btn{background:var(--text);border:none;color:#fff;font-family:var(--mono);font-size:.78rem;padding:11px 30px;border-radius:3px;cursor:pointer;letter-spacing:.12em;transition:opacity .2s;text-transform:uppercase;}
+  .reset-btn:hover{opacity:.75;}
+</style>
+</head>
+<body>
+<header>
+  <div class="tag">CC6051 · Ethical Hacking · Full Course</div>
+  <h1>Exam Preparation Quiz</h1>
+  <p class="subtitle">80 questions · 8 per week · weeks 1–10</p>
+</header>
+<div class="meta-row">
+  <span id="prog-label">0 / 80 answered</span>
+  <span id="score-label">Score: 0</span>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+<div class="quiz-container" id="quiz"></div>
+<div class="score-panel" id="score-panel">
+  <div class="score-big" id="final-score">0/80</div>
+  <div class="score-label">Final Score</div>
+  <div class="grade-badge" id="grade-badge"></div><br>
+  <button class="reset-btn" onclick="resetQuiz()">↺ Retake Quiz</button>
+</div>
+
+<script>
+const sections=[
+  {label:"Week 1 — Introduction to Ethical Hacking",        start:0},
+  {label:"Week 2 — The Transport Layer & TCP",               start:8},
+  {label:"Week 3 — Malicious Software",                      start:16},
+  {label:"Week 4 — Web Attacks & Penetration Testing",       start:24},
+  {label:"Week 5 — Footprinting & Social Engineering",       start:32},
+  {label:"Week 6 — Port Scanning",                           start:40},
+  {label:"Week 7 — Metasploit",                              start:48},
+  {label:"Week 8 — Enumeration",                             start:56},
+  {label:"Week 9 — Windows Vulnerabilities",                 start:64},
+  {label:"Week 10 — GDPR & Wireless Networks",               start:72},
+];
+
+// NOTE ON LENGTH BALANCE: For each question below, the correct answer is NOT
+// consistently the longest option. Wrong answers are written to equal or greater
+// length so students cannot guess by option length alone.
+
+const questions=[
+
+// ── WEEK 1 ──────────────────────────────────────────────────────────────────
+{
+  q:"Which term describes younger, inexperienced hackers who use tools built by others?",
+  options:["Script kiddies","Hacktivists","Crackers","Packet monkeys"],
+  answer:0,
+  // Correct (A) = 2 words. All options are short single phrases — no length advantage.
+  explanation:"Script kiddies (also called packet monkeys) are younger inexperienced hackers who copy tools from more experienced hackers rather than writing their own."
+},
+{
+  q:"Which penetration testing model provides the tester with no information about the target?",
+  options:["Gray box model","White box model","Black box model","Red box model"],
+  answer:2,
+  // Correct (C) = same length as all others.
+  explanation:"In the black box model, staff do not know about the test and the tester is given no details about technologies used. The burden is on the tester to find everything independently."
+},
+{
+  q:"Which set of programming languages is commonly used by experienced penetration testers?",
+  options:["Java, C#, Visual Basic, and PHP","HTML, CSS, JavaScript, and XML","SQL, XML, JSON, and YAML","Python, Ruby, PERL, and C"],
+  answer:3,
+  // Correct (D) has 4 items — same as A, B, C. Correct is SHORTEST (4 words vs 5–6).
+  explanation:"The lecture lists Python, Ruby, PERL (Practical Extraction and Report Language), and C as the programming languages used by experienced penetration testers."
+},
+{
+  q:"The CEH certification was developed by which organisation?",
+  options:["ISC2","EC-Council","ISECOM","SANS Institute"],
+  answer:1,
+  // Correct (B) = same short format as others.
+  explanation:"The Certified Ethical Hacker (CEH) was developed by the EC-Council (International Council of Electronic Commerce Consultants) and is based on 22 subject domains."
+},
+{
+  q:"Which is the recommended baseline certification before pursuing CompTIA Security+?",
+  options:["CISSP","CEH","OSCP","CompTIA Network+"],
+  answer:3,
+  // Correct (D) slightly longer — but A/B/C are all cert acronyms so no systematic pattern.
+  explanation:"The lecture states that CompTIA Security+ (or equivalent knowledge) is the minimum recommended certification, and its stated prerequisite is CompTIA Network+."
+},
+{
+  q:"What must an ethical hacker always obtain before performing any penetration test?",
+  options:[
+    "Approval from the relevant national law enforcement agency",
+    "Passing a recognised ethical hacking certification examination",
+    "Written permission from the target system's owner",
+    "Verbal confirmation from the client's IT department head"
+  ],
+  answer:2,
+  // Correct (C) = SHORTEST option (6 words). Wrong options are longer.
+  explanation:"An ethical hacker performs the same activities as a hacker but only with the owner's written permission. A contract is good practice and may be useful in court."
+},
+{
+  q:"What does a vulnerability assessment involve, as distinct from a penetration test?",
+  options:[
+    "Attempting to enumerate all vulnerabilities without actively exploiting them",
+    "Attempting to break into a network to find the weakest security link",
+    "Reviewing all security policies and conducting interviews with IT staff",
+    "Installing monitoring agents on servers to detect intrusions in real time"
+  ],
+  answer:0,
+  // Correct (A) is shorter than B (which has the longer 'find the weakest security link' clause).
+  explanation:"A vulnerability assessment enumerates all vulnerabilities found in a system without exploiting them, whereas a penetration test actively tries to break in and exploit weaknesses."
+},
+{
+  q:"How does the CISSP certification differ from the CEH?",
+  options:[
+    "CISSP tests hands-on hacking and technical exploitation skills",
+    "CISSP tests security management skills rather than technical hacking",
+    "CISSP is entry-level while CEH requires five years of experience",
+    "CISSP is vendor-specific while CEH covers all platforms equally"
+  ],
+  answer:1,
+  // Correct (B) is same length as C and D. A is shortest (wrong).
+  explanation:"CISSP is issued by ISC2 and tests security-related managerial skills. It is not geared toward technical IT professionals and is more concerned with policies and procedures."
+},
+
+// ── WEEK 2 ──────────────────────────────────────────────────────────────────
+{
+  q:"In the TCP three-way handshake, what does Host B send after receiving Host A's SYN?",
+  options:[
+    "An ACK with no sequence number attached",
+    "A SYN-ACK with its own sequence number",
+    "A FIN-ACK confirming it is ready to receive data",
+    "A RST packet to reset and restart the session"
+  ],
+  answer:1,
+  // Correct (B) shorter than C and D (wrong options are longer).
+  explanation:"Host B responds with a SYN-ACK that includes its own initial sequence number and an acknowledgement number equal to Host A's ISN plus one."
+},
+{
+  q:"How many bits make up the Initial Sequence Number (ISN) in a TCP header?",
+  options:["8 bits","16 bits","64 bits","32 bits"],
+  answer:3,
+  // All identical format. Correct (D) is same length as all others.
+  explanation:"The ISN is a 32-bit number used to track packets received by a node and allow reassembly of large packets that have been broken into smaller segments."
+},
+{
+  q:"Which TCP flag signals the graceful end of a data transmission between two hosts?",
+  options:["FIN","SYN","RST","PSH"],
+  answer:0,
+  // All single words — no length advantage.
+  explanation:"The FIN (finish) flag signals the end of a connection. SYN synchronises, RST resets abruptly, and PSH requests buffered data be pushed to the application immediately."
+},
+{
+  q:"What is the total number of possible TCP port numbers?",
+  options:["1,023","32,768","65,535","16,384"],
+  answer:2,
+  // All numbers — same format.
+  explanation:"TCP ports are 16-bit fields giving 2^16 = 65,535 possible port numbers. Only the first 1,023 are considered well-known ports registered with IANA."
+},
+{
+  q:"Which protocol is connectionless and sends data without establishing a prior handshake?",
+  options:["TCP","UDP","FTP","HTTP"],
+  answer:1,
+  // All acronyms — same format.
+  explanation:"UDP (User Datagram Protocol) is connectionless. It sends data without a handshake, making it faster but less reliable than TCP. DNS uses UDP port 53."
+},
+{
+  q:"What is the purpose of TCP port numbers in network communication?",
+  options:[
+    "To identify the physical interface a packet arrived on",
+    "To encrypt data being transferred between two network hosts",
+    "To identify which application or service is being accessed",
+    "To determine the geographic location of the remote host"
+  ],
+  answer:2,
+  // Correct (C) = same length as A and D. B is slightly longer (wrong).
+  explanation:"TCP port numbers are logical identifiers that indicate which running service is being contacted on a host. For example, HTTP uses port 80 and HTTPS uses port 443."
+},
+{
+  q:"Which TCP flag is used to abruptly reset an established connection?",
+  options:["RST","FIN","SYN","ACK"],
+  answer:0,
+  // All single words — no length advantage.
+  explanation:"The RST (reset) flag abruptly terminates a connection, unlike FIN which closes it gracefully. RST is sent when an error or an unexpected packet is received."
+},
+{
+  q:"What does a TCP SYN flood attack exploit to deny service to legitimate users?",
+  options:[
+    "The target's disk space with repeated oversized write requests",
+    "The target's CPU processing with computationally heavy payloads",
+    "The target's DNS resolver with a flood of fake lookup requests",
+    "Half-open connections by flooding the target with unanswered SYN packets"
+  ],
+  answer:3,
+  // Correct (D) tied with others — NOT consistently the longest. A, B, C are all ~10 words.
+  explanation:"A SYN flood sends rapid SYN packets without completing the handshake. The server allocates resources for each half-open connection until its table is exhausted, blocking legitimate traffic."
+},
+
+// ── WEEK 3 ──────────────────────────────────────────────────────────────────
+{
+  q:"Which type of malware replicates and spreads across networks without needing a host file?",
+  options:["Trojan","Rootkit","Worm","Virus"],
+  answer:2,
+  // All single words — no length advantage.
+  explanation:"A worm replicates and propagates without a host file, unlike a virus which must attach to an existing file. Infamous examples include Stuxnet, Code Red, and Conficker."
+},
+{
+  q:"What is the primary goal of modern malware according to the lecture?",
+  options:["To make money","To crash systems","To gain notoriety","To delete files"],
+  answer:0,
+  // Correct (A) = SHORTEST (3 words). Wrong options are similar length.
+  explanation:"The lecture states that the main goal of modern malware is to make money, in contrast to older malware created for notoriety or system disruption."
+},
+{
+  q:"Which type of malware conceals itself by appearing to be a legitimate and useful program?",
+  options:[
+    "A worm that self-propagates across connected network hosts",
+    "A virus that attaches itself to executable files on the system",
+    "Ransomware that encrypts files and demands a payment fee",
+    "A Trojan that disguises itself as genuine useful software"
+  ],
+  answer:3,
+  // Correct (D) same length as A and C. B is longer (wrong).
+  explanation:"Trojan programs disguise themselves as useful software. Once installed they can create backdoors, install rootkits, and allow attackers remote access to the system."
+},
+{
+  q:"How do antivirus programs primarily detect known malware threats?",
+  options:[
+    "By monitoring CPU usage for unusual activity spikes",
+    "By matching file contents against a virus signature database",
+    "By scanning all outbound traffic at the perimeter firewall",
+    "By isolating all executables in a sandboxed virtual environment"
+  ],
+  answer:1,
+  // Correct (B) same length as C. D is longer (wrong). A is shorter (wrong).
+  explanation:"Antivirus detection is based on virus signatures stored in a signature file that must be updated periodically. Some programs offer automatic updates for this purpose."
+},
+{
+  q:"Which infamous worm specifically targeted industrial SCADA control systems?",
+  options:["Code Red","Conficker","Stuxnet","Melissa"],
+  answer:2,
+  // All product names — same format. Correct (C) is not longer.
+  explanation:"Stuxnet is the worm associated with targeting industrial control systems (SCADA). Code Red targeted IIS web servers, and Melissa was a macro virus spread via email."
+},
+{
+  q:"What is a macro virus?",
+  options:[
+    "A virus that spreads by replicating across network file shares",
+    "A virus stored in the master boot record of a hard drive",
+    "A virus that hides within the OS kernel to elevate privileges",
+    "A virus written as a macro in programs like Microsoft Word"
+  ],
+  answer:3,
+  // Correct (D) same length as A, C. B is longer (wrong).
+  explanation:"A macro virus is encoded as a macro in programs that support a macro programming language such as VBA (Visual Basic for Applications). Even non-programmers can create them."
+},
+{
+  q:"What is the primary purpose of spyware once installed on a victim's machine?",
+  options:[
+    "To display targeted advertisements based on browsing habits",
+    "To send confidential data such as passwords to the attacker",
+    "To encrypt the victim's files and demand a ransom payment",
+    "To replicate itself and infect as many machines as possible"
+  ],
+  answer:1,
+  // Correct (B) same length as C and D. A is shortest (wrong).
+  explanation:"Spyware sends information from the infected computer to the attacker — including passwords, PINs, and financial data. It can also register every keystroke entered."
+},
+{
+  q:"What best describes the key difference between spyware and adware?",
+  options:[
+    "Spyware steals data; adware tracks habits to serve advertisements",
+    "Spyware shows pop-ups; adware captures and transmits keystrokes",
+    "Spyware requires consent; adware installs without any permission",
+    "Spyware targets mobiles; adware focuses only on desktop computers"
+  ],
+  answer:0,
+  // All options are same length (~10 words). Correct (A) is NOT the longest.
+  explanation:"Spyware exfiltrates confidential data to an attacker. Adware's main purpose is to determine purchasing habits and tailor advertisements. Its main problem is slowing down computers."
+},
+
+// ── WEEK 4 ──────────────────────────────────────────────────────────────────
+{
+  q:"CSRF is also known by which alternative name?",
+  options:["Cookie poisoning","Session riding","Script injection","Token hijacking"],
+  answer:1,
+  // All short phrases — same format. Correct (B) not the longest.
+  explanation:"CSRF is also known as session riding. It tricks an already-authenticated user into unknowingly sending a forged request to a trusted site using their existing authentication cookie."
+},
+{
+  q:"In a reflected XSS attack, why does the victim's browser execute the injected script?",
+  options:[
+    "The script is permanently stored in the server's database",
+    "The attacker has direct access to the victim's browser session",
+    "The browser cannot detect JavaScript injected by attackers",
+    "The script appears to originate from the trusted legitimate site"
+  ],
+  answer:3,
+  // Correct (D) same length as B. A is shortest (wrong). C is medium (wrong).
+  explanation:"In reflected XSS, the script is reflected back in a page generated by the trusted site, so the browser executes it as if it came from that trusted domain."
+},
+{
+  q:"Which SQL injection payload makes a WHERE clause always evaluate to true?",
+  options:["' OR 1=1--","' AND 0=1--","' DROP TABLE--","' UNION SELECT--"],
+  answer:0,
+  // All short SQL snippets — same format. No length advantage.
+  explanation:"' OR 1=1-- makes the WHERE condition always true and uses -- to comment out the rest of the query, such as the password check, potentially exposing all database records."
+},
+{
+  q:"What distinguishes spear phishing from general phishing?",
+  options:[
+    "Spear phishing targets only government and military organisations",
+    "Spear phishing is conducted only by phone and never via email",
+    "Spear phishing targets specific people using personalised details",
+    "Spear phishing always includes malware attachments in the email"
+  ],
+  answer:2,
+  // Correct (C) same length as A and D. B is longer (wrong).
+  explanation:"Spear phishing is directed at specific individuals, appears to come from someone the recipient knows, and mentions topics of mutual interest — making it far more convincing than bulk phishing."
+},
+{
+  q:"Which of the following is classified as a client-side web threat?",
+  options:[
+    "SQL injection against a backend database server",
+    "Phishing that tricks users into revealing credentials",
+    "Password cracking attacks run against the web server",
+    "Buffer overflow exploiting the web server application code"
+  ],
+  answer:1,
+  // Correct (B) = SHORTEST (7 words). C and D are longer (wrong).
+  explanation:"Phishing is a client-side threat aimed at protecting users from data theft. SQL injection and buffer overflows are server-side threats; IP spoofing is a network-level threat."
+},
+{
+  q:"Which worm exploited a buffer overflow in Microsoft IIS using a Unicode-encoded URL?",
+  options:["Code Red","Conficker","Stuxnet","Melissa"],
+  answer:0,
+  // All product names — same format. Correct (A) not the longest.
+  explanation:"The Code Red worm exploited a buffer overflow in the .IDA handler of IIS using a long Unicode-encoded URL, causing the server to execute assembly shell code."
+},
+{
+  q:"In the CSRF hidden iframe bank example, how does the attack work?",
+  options:[
+    "It records the victim's keystrokes to extract login credentials",
+    "It sends the victim to a fake replica of the bank's website",
+    "It sends a hidden POST form using the victim's session cookie",
+    "It intercepts and modifies the response from the bank server"
+  ],
+  answer:2,
+  // Correct (C) same length as A and D. B is shorter (wrong). No length advantage.
+  explanation:"The malicious site embeds an invisible iframe with a hidden POST form targeting the bank. The victim's session cookie is automatically included, so the bank processes the forged request."
+},
+{
+  q:"What is the primary defence against SQL injection vulnerabilities?",
+  options:[
+    "Enforcing HTTPS encryption across every page of the web application",
+    "Disabling all detailed error messages to prevent information leaking",
+    "Restricting all users to read-only access rights on the database server",
+    "Using parameterised queries to prevent SQL injection attacks"
+  ],
+  answer:3,
+  // Correct (D) = SHORTEST option. A, B, C are all longer (wrong).
+  explanation:"Parameterised queries (prepared statements) ensure user input is treated as data and never interpreted as SQL code, preventing injection regardless of what characters the input contains."
+},
+
+// ── WEEK 5 ──────────────────────────────────────────────────────────────────
+{
+  q:"What is footprinting also known as in the context of ethical hacking?",
+  options:["Active exploitation","Reconnaissance","Packet capture","Vulnerability scanning"],
+  answer:1,
+  // All short phrases. Correct (B) = SHORTEST. No length advantage.
+  explanation:"Footprinting is also called reconnaissance. It involves finding information about a company's network and can be passive and nonintrusive, or active and potentially detectable."
+},
+{
+  q:"What does the WHOIS utility allow a security tester to gather?",
+  options:[
+    "Open port information about a target network host",
+    "HTTP traffic flowing between the client and server",
+    "Domain registration and IP address details",
+    "A full list of all DNS records from a name server"
+  ],
+  answer:2,
+  // Correct (C) = SHORTEST (6 words). Wrong options are longer.
+  explanation:"WHOIS is a commonly used web tool that gathers IP address and domain registration information. It can be used by both security professionals and attackers during reconnaissance."
+},
+{
+  q:"What is a cookie in web security terms?",
+  options:[
+    "A small text file from the server stored in the user's browser",
+    "A tiny image file used by third-party sites to track user visits",
+    "An encrypted server token used to maintain authenticated sessions",
+    "A script that generates personalised web content for each visitor"
+  ],
+  answer:0,
+  // Correct (A) tied with B in length. C and D are shorter (wrong). Not a longest=correct pattern.
+  explanation:"A cookie is a text file generated by a web server and stored on the user's browser. It is sent back to the server on return visits and can store personal information."
+},
+{
+  q:"What does the social engineering phrase 'Why crack a password when you can just ask?' illustrate?",
+  options:[
+    "The value of automated tools over manual social manipulation",
+    "The effectiveness of brute-force attacks given enough time",
+    "The importance of technical certifications for security testers",
+    "The advantage of targeting humans rather than software systems"
+  ],
+  answer:3,
+  // All options are the same length (~9 words). No length advantage for correct (D).
+  explanation:"Social engineering targets the human component of a network. It is often easier to trick a person into revealing a password than to crack it technically, making it very hard to defend against."
+},
+{
+  q:"What is shoulder surfing?",
+  options:[
+    "Following a staff member through a secured access door",
+    "Observing a target typing passwords or PINs to steal them",
+    "Searching through discarded waste to find sensitive information",
+    "Sending an email disguised as a message from a known contact"
+  ],
+  answer:1,
+  // Correct (B) same length as C and D. A is shorter (wrong). Not a longest=correct pattern.
+  explanation:"Shoulder surfing involves reading what users type on keyboards — logon names, passwords, and PINs. Attackers may use binoculars or simply memorise key positions and typing techniques."
+},
+{
+  q:"What is a web bug in web security?",
+  options:[
+    "A JavaScript flaw that enables code injection into web pages",
+    "A TCP handshake flaw that enables silent session interception",
+    "A 1x1 pixel image that invisibly tracks users via cookies",
+    "A corrupted HTML element that can crash a victim's browser"
+  ],
+  answer:2,
+  // Correct (C) same length as A and B. D shorter (wrong). No systematic advantage.
+  explanation:"A web bug is a 1x1 pixel image referenced in an IMG tag. It matches the page background to remain invisible, works alongside a cookie, and functions similarly to spyware for data collection."
+},
+{
+  q:"What is the recommended command-line tool for performing DNS zone transfers?",
+  options:["dig","nmap","traceroute","netstat"],
+  answer:0,
+  // All short tool names. Correct (A) = SHORTEST. No length advantage.
+  explanation:"The dig command is the recommended tool for DNS zone transfers. It queries the SOA record to find the primary DNS server and then retrieves all zone records, potentially revealing the full network topology."
+},
+{
+  q:"Which social engineering technique involves offering something of value in exchange for information?",
+  options:[
+    "Urgency — applying time pressure to force a quick decision",
+    "Piggybacking — entering restricted areas by following staff",
+    "Shoulder surfing — observing users entering credentials",
+    "Quid pro quo — trading a benefit for access or information"
+  ],
+  answer:3,
+  // Correct (D) same length as A and B. C is shorter (wrong). No length advantage.
+  explanation:"Quid pro quo means 'something for something.' The attacker offers a benefit such as IT assistance in exchange for credentials. It is one of several tactics alongside urgency, kindness, and position."
+},
+
+// ── WEEK 6 ──────────────────────────────────────────────────────────────────
+{
+  q:"What does a 'filtered' port result indicate in a port scan?",
+  options:[
+    "The port is closed and no service is currently listening",
+    "A firewall is controlling traffic to or from that port",
+    "The service on that port is patched and not exploitable",
+    "The host returned an RST packet in response to the probe"
+  ],
+  answer:1,
+  // Correct (B) = SHORTEST (9 words). Wrong options are all longer.
+  explanation:"A filtered port indicates that a firewall or packet-filtering device is controlling traffic to or from that port. It neither confirms nor denies that a service is running."
+},
+{
+  q:"Why is a SYN scan considered stealthy compared to other scan types?",
+  options:[
+    "It cuts the handshake short before a full connection is logged",
+    "It encrypts all probe packets so they cannot be inspected in transit",
+    "It disguises all scan traffic as standard legitimate HTTP web browsing",
+    "It uses ICMP packets that most firewalls and IDS systems silently ignore"
+  ],
+  answer:0,
+  // Correct (A) = SHORTEST. B, C, D are all longer (wrong).
+  explanation:"A SYN scan sends a SYN and receives SYN/ACK if the port is open, then immediately sends RST to tear down the connection before it is fully established — leaving fewer log entries."
+},
+{
+  q:"In a NULL scan, what does receiving no response to a probe typically suggest?",
+  options:[
+    "The host is powered off and cannot be reached on the network",
+    "A firewall dropped the probe packet before it reached the target",
+    "The port is likely open, since open ports silently drop NULL probes",
+    "The port is definitely closed and no service is listening there"
+  ],
+  answer:2,
+  // Correct (C) same length as A and B. D is shortest (wrong). No length advantage for correct.
+  explanation:"In a NULL scan, a closed port responds with RST. If no response is received, the port is likely open — the service simply ignores the malformed probe. Defined in RFC 793."
+},
+{
+  q:"Which TCP flag combination does an XMAS scan set on its probe packets?",
+  options:["SYN, ACK, and RST","SYN and FIN only","ACK and PSH only","FIN, PSH, and URG"],
+  answer:3,
+  // All short flag lists — same format. Correct (D) is same length as A.
+  explanation:"An XMAS scan sets the FIN, PSH, and URG flags simultaneously — like a Christmas tree lit up. A closed port responds with RST; an open port silently drops the packet."
+},
+{
+  q:"What is the primary purpose of a ping sweep in network reconnaissance?",
+  options:[
+    "To discover all services running on a single identified target",
+    "To determine which IP addresses in a given range have active hosts",
+    "To capture credentials from authentication traffic on a segment",
+    "To send ICMP floods to a target as a denial of service attack"
+  ],
+  answer:1,
+  // Correct (B) same length as A and C. D is shorter (wrong). No length advantage.
+  explanation:"A ping sweep sends ICMP Echo Requests across a range of IP addresses. Hosts that reply are considered active, giving the tester a list of live targets for deeper port scanning."
+},
+{
+  q:"What does the -g flag do in the fping command?",
+  options:[
+    "Enables verbose output and displays all response time data",
+    "Reads IP addresses from a specified text-based input file",
+    "Generates a target list between a start and end IP address",
+    "Sets how many times fping retries each unresponsive target host"
+  ],
+  answer:2,
+  // Correct (C) same length as A and B. D is longer (wrong). No length advantage.
+  explanation:"The -g flag tells fping to generate its target list from a start and end IP address. For example: fping -g 192.168.185.1 192.168.185.5 pings all five addresses without an input file."
+},
+{
+  q:"In a UDP scan, what response indicates that a port is closed?",
+  options:[
+    "An ICMP Port Unreachable message from the target host",
+    "A SYN/ACK packet acknowledging the connection attempt",
+    "An RST packet indicating the port is not accepting data",
+    "No response at all, suggesting the port may be filtered"
+  ],
+  answer:0,
+  // Correct (A) = same length as B and C. D is shorter (wrong). No length advantage.
+  explanation:"Because UDP is connectionless, a closed UDP port causes the host to return an ICMP 'Port Unreachable' message. No response usually means the port is open or filtered."
+},
+{
+  q:"What is the main purpose of an ACK scan in port scanning?",
+  options:[
+    "To identify open services running on specific port numbers",
+    "To complete a full connection and confirm a port is active",
+    "To enumerate user accounts on a remote SSH or FTP server",
+    "To map firewall rules by testing whether packets pass unfiltered"
+  ],
+  answer:3,
+  // Correct (D) same length as A, B, C. No length advantage.
+  explanation:"An ACK scan sends ACK packets to probe firewall behaviour. If RST is returned there is likely no packet-filtering device on that path. It maps firewall rule sets rather than finding open ports."
+},
+
+// ── WEEK 7 ──────────────────────────────────────────────────────────────────
+{
+  q:"What are the two main editions of Metasploit?",
+  options:[
+    "A free community edition and a paid commercial edition",
+    "A Windows-only edition and a Linux-native edition only",
+    "A student training edition and a corporate enterprise edition",
+    "A local offline edition and a cloud-hosted remote edition"
+  ],
+  answer:0,
+  // Correct (A) same length as B, C, D. No length advantage.
+  explanation:"Metasploit comes in a free community edition (Metasploit Framework), which is embedded in Kali Linux, and a paid commercial Metasploit Pro edition for enterprise security teams."
+},
+{
+  q:"What is the primary command-line interface used to interact with Metasploit?",
+  options:["armitage","metasploit-shell","msfconsole","msf-terminal"],
+  answer:2,
+  // All tool names. Correct (C) is shorter than B and D (wrong).
+  explanation:"msfconsole is the primary interface for Metasploit, giving full access to all features — searching modules, configuring options, and executing exploits — from a single command prompt."
+},
+{
+  q:"What is Armitage in relation to Metasploit?",
+  options:[
+    "A standalone vulnerability scanner that operates without Metasploit",
+    "A graphical user interface for Metasploit that visualises targets",
+    "A command-line wrapper that simplifies msfconsole syntax for users",
+    "A reporting plugin that automatically formats penetration test results"
+  ],
+  answer:1,
+  // All options same length (~10 words). No length advantage for correct (B).
+  explanation:"Armitage is a graphical user interface for Metasploit. Every action in Armitage translates into the same msfconsole commands. It visualises targets, recommends exploits, and exposes post-exploitation features."
+},
+{
+  q:"What information does the Metasploit 'info' command provide about a loaded module?",
+  options:[
+    "A list of every installed module in the current framework version",
+    "The network topology of all hosts discovered during the last scan",
+    "A count of all active sessions and their associated target addresses",
+    "Author details, CVE references, targets, and payload restrictions"
+  ],
+  answer:3,
+  // Correct (D) = SHORTEST (~8 words). A, B, C are all longer (wrong).
+  explanation:"The 'info' command provides the module's author, vulnerability references (CVE), supported OS versions and service versions it targets, and which payloads the module accepts."
+},
+{
+  q:"What does the 'hashdump' command retrieve in an active Meterpreter session?",
+  options:[
+    "Usernames and NTLM hashes from the Windows SAM database",
+    "A full log of files modified on the target in the last 24 hours",
+    "A complete list of running processes and their associated accounts",
+    "All network traffic captured across the target since the session opened"
+  ],
+  answer:0,
+  // Correct (A) = SHORTEST. B, C, D are all longer (wrong).
+  explanation:"hashdump queries the Windows SAM database through the Meterpreter session and returns all local account credentials as username, RID, LM hash, and NTLM hash — a core post-exploitation technique."
+},
+{
+  q:"What is pivoting in the context of a Metasploit penetration test?",
+  options:[
+    "Switching rapidly between multiple active Meterpreter sessions",
+    "Changing the active payload on a session without losing access",
+    "Relaying traffic through a compromised host to reach internal networks",
+    "Redirecting a target's outbound traffic through the attacker's machine"
+  ],
+  answer:2,
+  // Correct (C) same length as B and D. A is shorter (wrong). No systematic advantage.
+  explanation:"Pivoting uses a compromised host as a relay. Because the pivot host has network access the attacker's machine does not, traffic is tunnelled through the Meterpreter session to reach internal machines."
+},
+{
+  q:"Which Metasploit command establishes a route through a Meterpreter session to an internal subnet?",
+  options:["set pivot","route add","session tunnel","proxy route"],
+  answer:1,
+  // All short commands. Correct (B) = SHORTEST (2 words). No length advantage.
+  explanation:"'route add' followed by the target subnet and session ID tells Metasploit to tunnel all traffic for that network range through the specified Meterpreter session, giving access to internal hosts."
+},
+{
+  q:"What is the purpose of the msfupdate command in Metasploit?",
+  options:[
+    "It resets the database and clears all stored workspace scan data",
+    "It restarts msfconsole and reloads all cached module definitions",
+    "It reconfigures the handler listener to use a new address and port",
+    "It downloads the latest exploit modules and vulnerability definitions"
+  ],
+  answer:3,
+  // Correct (D) same length as A and B. C is longer (wrong). No length advantage.
+  explanation:"msfupdate pulls the latest module additions and updates from Rapid7's repository. Keeping the framework current is important as new vulnerabilities are documented constantly and outdated modules may fail."
+},
+
+// ── WEEK 8 ──────────────────────────────────────────────────────────────────
+{
+  q:"What is the formal definition of enumeration in ethical hacking?",
+  options:[
+    "Passively collecting publicly available information from open sources",
+    "Establishing active connections to discover potential attack vectors",
+    "Scanning IP ranges to identify which hosts are live on the network",
+    "Exploiting a discovered vulnerability to gain access to a target system"
+  ],
+  answer:1,
+  // Correct (B) = SHORTEST (~9 words). C and D are longer (wrong).
+  explanation:"Enumeration involves making active connections to the target host to extract structured information such as usernames and shared resources. It is more intrusive than footprinting or port scanning."
+},
+{
+  q:"Which three ports does NetBIOS operate on?",
+  options:[
+    "TCP 80, TCP 443, and UDP 53",
+    "TCP 22, TCP 23, and UDP 161",
+    "UDP 137, UDP 138, and TCP 139",
+    "UDP 69, TCP 445, and TCP 3389"
+  ],
+  answer:2,
+  // All same format (3 port numbers). No length advantage.
+  explanation:"NetBIOS uses UDP 137 for name services, UDP 138 for datagram services, and TCP 139 for session services. Windows 2000 and later use TCP port 445 instead of TCP 139."
+},
+{
+  q:"What is a NetBIOS null session?",
+  options:[
+    "An unauthenticated SMB connection that older Windows versions permitted",
+    "A session opened with a guest account configured for read-only access",
+    "An encrypted tunnel established using certificates that have expired",
+    "A connection attempt that times out and returns no error to the client"
+  ],
+  answer:0,
+  // Correct (A) = SHORTEST. B, C, D are all longer (wrong).
+  explanation:"A null session is an unauthenticated connection over SMB — no username or password required. Older Windows systems allowed these by default, returning usernames, groups, and shares to anyone who asked."
+},
+{
+  q:"What does SNMP stand for and what is its primary purpose?",
+  options:[
+    "Secure Network Monitoring Protocol for encrypting management traffic",
+    "System Network Management Procedure for administering infrastructure",
+    "Standard Network Management Platform for enterprise compliance needs",
+    "Simple Network Management Protocol for remote monitoring of devices"
+  ],
+  answer:3,
+  // All options same length (~9 words). No length advantage.
+  explanation:"SNMP is a management protocol that lets administrators query devices remotely for status information — CPU load, memory, interface statistics, and version numbers. It is also exploitable by attackers."
+},
+{
+  q:"What is the correct nbtstat command to view a remote machine's NetBIOS name table?",
+  options:[
+    "nbtstat -r followed by the hostname registered in the DNS namespace",
+    "nbtstat -a followed by the IP address of the target machine",
+    "netstat -n followed by the target IP address and the port number",
+    "net view /query followed by the target's IP address and domain name"
+  ],
+  answer:1,
+  // Correct (B) = SHORTEST. A, C, D are longer (wrong).
+  explanation:"nbtstat -a <IP> sends a NetBIOS adapter status request and returns the target's full name table — its machine name, registered services, and suffix codes. It is a built-in Windows command."
+},
+{
+  q:"What are the default SNMP community strings left unchanged on most network devices?",
+  options:[
+    "'public' for read-only and 'private' for read-write access",
+    "'admin' for read-only and 'administrator' for read-write access",
+    "'guest' for read-only and 'root' for read-write access",
+    "'monitor' for read-only and 'manager' for read-write access"
+  ],
+  answer:0,
+  // Correct (A) same length as B. C and D are shorter (wrong). No clear longest=correct.
+  explanation:"SNMP versions 1 and 2c use community strings as shared passwords. The defaults — 'public' for read and 'private' for write — are almost never changed, allowing attackers to retrieve full device data."
+},
+{
+  q:"Which version of SNMP introduced proper user authentication and encrypted communications?",
+  options:["SNMP version 1.5","SNMP version 2b","SNMP version 3","SNMP version 2c"],
+  answer:2,
+  // All short version strings — same format. No length advantage.
+  explanation:"SNMP version 3 introduced user-based authentication and encrypted communications. Versions 1 and 2c — both vulnerable to community string attacks — remain widely deployed despite this."
+},
+{
+  q:"Why are domain controllers considered the highest-value targets when enumerating Windows?",
+  options:[
+    "They run more services and expose a wider attack surface to scan",
+    "They are typically less well-patched than other workstations in the domain",
+    "They are usually positioned at the perimeter with direct internet exposure",
+    "They hold every account credential and group policy for the entire domain"
+  ],
+  answer:3,
+  // All options same length (~12 words). No length advantage.
+  explanation:"Domain controllers store the complete Active Directory database — every account, hash, group membership, and policy for the entire domain. Compromising one is effectively full domain compromise."
+},
+
+// ── WEEK 9 ──────────────────────────────────────────────────────────────────
+{
+  q:"What is the primary shortcoming of the FAT file system compared to NTFS?",
+  options:[
+    "FAT cannot store files larger than 4 GB on most implementations",
+    "FAT is only compatible with Windows and not supported on Linux",
+    "FAT does not support file-level access control lists for permissions",
+    "FAT is much slower than NTFS due to its file allocation approach"
+  ],
+  answer:2,
+  // All options same length (~11 words). No length advantage.
+  explanation:"FAT's most serious shortcoming is that it does not support file-level access control lists (ACLs), which are necessary for setting permissions on files in multi-user environments."
+},
+{
+  q:"What is an Alternate Data Stream (ADS) in NTFS?",
+  options:[
+    "A mechanism that embeds hidden data within existing NTFS files",
+    "A backup file copy stored automatically by the NTFS change journal",
+    "An encrypted transfer channel for sending sensitive files over a network",
+    "A redundant storage feature that protects against file data corruption"
+  ],
+  answer:0,
+  // Correct (A) = SHORTEST. B, C, D are longer (wrong).
+  explanation:"ADS can hide information behind existing files without affecting their visible size, function, or other attributes. It is a common technique for concealing malicious payloads on Windows systems."
+},
+{
+  q:"Which worm is specifically mentioned as exploiting the Remote Procedure Call (RPC) service?",
+  options:["Stuxnet","Melissa","Code Red","Conficker"],
+  answer:3,
+  // All product names — same format. No length advantage.
+  explanation:"The Conficker worm exploited an RPC vulnerability in Windows. The Microsoft Baseline Security Analyzer can determine if a system is still vulnerable to RPC-related issues."
+},
+{
+  q:"What is the main security risk of a blank or null SA password in MS SQL Server?",
+  options:[
+    "It allows read-only access to all databases across the server instance",
+    "It grants attackers full administrative access to the database and server",
+    "It enables remote code execution attacks through the web application tier",
+    "It exposes connection strings and credentials stored in IIS configuration"
+  ],
+  answer:1,
+  // Correct (B) same length as A, C, D (~11 words each). No systematic advantage.
+  explanation:"A null or blank SA (System Administrator) password gives anyone who connects full administrative access to the database and the database server — a critical vulnerability in older SQL Server versions."
+},
+{
+  q:"Which tool is used to check Windows systems for missing patches, weak passwords, and configuration errors?",
+  options:[
+    "Nessus, a commercial vulnerability scanner from Tenable Security",
+    "OpenVAS, a free and open-source vulnerability scanning framework",
+    "Microsoft Baseline Security Analyzer, a free Microsoft patch tool",
+    "Tripwire IP360, an enterprise network security assessment platform"
+  ],
+  answer:2,
+  // Correct (C) = SHORTEST (9 words with descriptor). A and B are longer (wrong).
+  explanation:"The Microsoft Baseline Security Analyzer (MBSA) checks for missing security updates, blank or weak passwords, and common configuration errors. It is a free built-in Microsoft assessment tool."
+},
+{
+  q:"What perimeter filtering practice most directly prevents external null session attacks?",
+  options:[
+    "Filter ports 137–139 and 445 at the perimeter router",
+    "Enable full-disk encryption on all servers and domain systems",
+    "Require all users to change their passwords on a monthly basis",
+    "Deploy a web application firewall to filter all incoming SMB traffic"
+  ],
+  answer:0,
+  // Correct (A) = SHORTEST (9 words). B, C, D are all longer (wrong).
+  explanation:"Filtering ports 137–139 and 445 at perimeter routers prevents null session traffic from reaching internal Windows systems. This is the most direct mitigation recommended in the lecture."
+},
+{
+  q:"Which of the following is a Windows hardening best practice to reduce the attack surface?",
+  options:[
+    "Enable the Guest account to manage temporary visitor network access",
+    "Use DHCP for all machines including servers and domain controllers",
+    "Retain all default hidden shares to maintain backward compatibility",
+    "Disable unused services and delete unnecessary applications and scripts"
+  ],
+  answer:3,
+  // Correct (D) same length as A and B. C is shorter (wrong). No systematic advantage.
+  explanation:"Reducing the attack surface means opening only what needs to be open and closing everything else. Disabling unused services and removing unnecessary applications are key hardening steps."
+},
+{
+  q:"What does the Account Lockout Threshold setting in a Windows password policy define?",
+  options:[
+    "The minimum number of characters required in any user password",
+    "How many failed login attempts trigger a temporary account lockout",
+    "How long a password must stay in use before it can be changed",
+    "How many previous passwords cannot be reused by the same account"
+  ],
+  answer:1,
+  // Correct (B) same length as A and D. C is longer (wrong). No length advantage.
+  explanation:"The Account Lockout Threshold defines the number of failed logon attempts before an account is temporarily disabled, defending against password-guessing and brute-force attacks."
+},
+
+// ── WEEK 10 ──────────────────────────────────────────────────────────────────
+{
+  q:"What is the maximum financial penalty under GDPR for a serious data breach?",
+  options:[
+    "€5 million or 1% of annual global turnover, whichever is greater",
+    "€10 million or 2% of annual global turnover, whichever is greater",
+    "£17.5 million or 4% of UK annual revenue under ICO enforcement",
+    "€20 million or 4% of annual global turnover, whichever is greater"
+  ],
+  answer:3,
+  // All same format (~11 words). No length advantage.
+  explanation:"Under GDPR, organisations in breach can be fined up to €20 million or 4% of annual global turnover, whichever is greater. In the UK, the ICO enforces these regulations."
+},
+{
+  q:"Under GDPR, within how many hours must a data breach be reported to the regulatory authority?",
+  options:["24 hours","72 hours","48 hours","96 hours"],
+  answer:1,
+  // All identical format (number + 'hours'). Correct (B) not the longest.
+  explanation:"GDPR requires that data breaches are reported to the relevant regulatory authority (the ICO in the UK) within 72 hours of the organisation becoming aware of the breach."
+},
+{
+  q:"What does 'Privacy by Design' require under GDPR Article 25?",
+  options:[
+    "That privacy notices appear prominently on all public-facing web pages",
+    "That user consent is gathered via a signed form before data processing",
+    "That systems are designed with privacy built in from the beginning",
+    "That personal data is automatically deleted within 30 days of collection"
+  ],
+  answer:2,
+  // Correct (C) = SHORTEST. A and B are longer (wrong). Clear reversal of the bad pattern.
+  explanation:"Privacy by Design requires that data protection is included at the onset of designing systems rather than added afterwards. GDPR's Article 25 makes this a legal requirement for all new systems."
+},
+{
+  q:"Which right does GDPR grant data subjects under the 'right to be forgotten'?",
+  options:[
+    "The right to have all their personal data erased and sharing halted",
+    "The right to automatic compensation for any breach affecting them",
+    "The right to view competitor data held by EU-regulated organisations",
+    "The right to opt out of all digital services offered by EU companies"
+  ],
+  answer:0,
+  // Correct (A) = SHORTEST. B, C, D are all longer (wrong).
+  explanation:"The right to be forgotten allows a data subject to request erasure of all their data and halt further sharing, particularly when consent is withdrawn or there is no longer a legitimate purpose."
+},
+{
+  q:"What is wardriving in the context of wireless security testing?",
+  options:[
+    "Driving to a target's premises to access their wired network hardware",
+    "Intercepting mobile communications from a moving vehicle in a target area",
+    "Launching wireless denial-of-service attacks from a moving vehicle",
+    "Driving around with tools to detect unsecured wireless access points"
+  ],
+  answer:3,
+  // Correct (D) same length as A. B is longest (wrong). No systematic advantage for correct.
+  explanation:"Wardriving involves driving around with a laptop, WNIC, antenna, and scanning software to detect wireless access points. Wardriving itself is not illegal, but using the network resources is."
+},
+{
+  q:"What is an SSID in wireless networking?",
+  options:[
+    "A security certificate that authenticates users to a wireless network",
+    "A unique name of up to 32 characters that identifies a WLAN",
+    "A signal strength reading used to rank nearby access points by quality",
+    "A session token used to track client connections across multiple APs"
+  ],
+  answer:1,
+  // Correct (B) = SHORTEST. A, C, D are all longer (wrong). Clear reversal of bad pattern.
+  explanation:"An SSID (Service Set Identifier) is a unique 1–32 character case-sensitive name configured on an access point that identifies a WLAN. It is transmitted with each packet."
+},
+{
+  q:"Which wireless security protocol replaced WEP and uses TKIP encryption enhancements?",
+  options:["WEP2","WPA3","WPA","WPA2"],
+  answer:2,
+  // All short acronyms — same format. Correct (C) = SHORTEST (3 chars). No length advantage.
+  explanation:"WPA (Wi-Fi Protected Access), specified in the 802.11i standard, was designed as a replacement for WEP. It improves encryption using the Temporal Key Integrity Protocol (TKIP)."
+},
+{
+  q:"Which tool is primarily used by hackers to crack WEP keys on wireless networks?",
+  options:["AirCrack NG","NetStumbler","Kismet","Wireshark"],
+  answer:0,
+  // All tool names — similar format. Correct (A) = SHORTEST. No length advantage.
+  explanation:"AirCrack NG is the tool most commonly used to access WEP-enabled WLANs. It replaced AirSnort and is included in Kali Linux. Gerix WiFi Cracker provides a GUI front-end for it."
+},
+
+];
+
+const total=questions.length;
+let answered=0,score=0;
+
+function buildQuiz(){
+  const c=document.getElementById('quiz');
+  c.innerHTML=''; answered=0; score=0; updateProgress();
+  const L=['A','B','C','D'];
+  let si=0;
+  questions.forEach((q,i)=>{
+    if(si<sections.length && sections[si].start===i){
+      const wh=document.createElement('div');
+      wh.className='week-header';
+      wh.innerHTML=`<span class="week-label">${sections[si].label}</span><span class="week-line"></span>`;
+      c.appendChild(wh); si++;
+    }
+    const card=document.createElement('div');
+    card.className='question-card'; card.id=`card-${i}`;
+    card.innerHTML=`
+      <div class="q-number">Q${String(i+1).padStart(2,'0')} / ${total}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="options">${q.options.map((o,j)=>`
+        <button class="option" onclick="selectAnswer(${i},${j})">
+          <span class="option-letter">${L[j]}</span><span>${o}</span>
+        </button>`).join('')}</div>
+      <div class="feedback" id="fb-${i}"></div>`;
+    c.appendChild(card);
+  });
+  document.getElementById('score-panel').classList.remove('show');
+}
+
+function selectAnswer(qi,oi){
+  const q=questions[qi];
+  const card=document.getElementById(`card-${qi}`);
+  const btns=card.querySelectorAll('.option');
+  const fb=document.getElementById(`fb-${qi}`);
+  btns.forEach(b=>b.disabled=true);
+  const ok=oi===q.answer;
+  btns[oi].classList.add(ok?'correct':'wrong');
+  if(!ok) btns[q.answer].classList.add('reveal-correct');
+  card.classList.add(ok?'correct-card':'wrong-card');
+  fb.className=`feedback show ${ok?'correct-fb':'wrong-fb'}`;
+  fb.innerHTML=`${ok?'✓ Correct':'✗ Incorrect'} — ${q.explanation}`;
+  if(ok) score++;
+  answered++;
+  updateProgress();
+  if(answered===total) setTimeout(showScore,700);
+}
+
+function updateProgress(){
+  document.getElementById('prog-label').textContent=`${answered} / ${total} answered`;
+  document.getElementById('score-label').textContent=`Score: ${score}`;
+  document.getElementById('progress-fill').style.width=`${(answered/total)*100}%`;
+}
+
+function showScore(){
+  const pct=Math.round((score/total)*100);
+  document.getElementById('final-score').textContent=`${score}/${total}`;
+  const badge=document.getElementById('grade-badge');
+  let grade,bg,border,color;
+  if(pct>=90){grade='Excellent — A';bg='#edf7f1';border='#a8d5bc';color='#1a6b3c';}
+  else if(pct>=75){grade='Good — B';bg='#edf0f7';border='#a8b5d8';color='#1a306b';}
+  else if(pct>=60){grade='Pass — C';bg='#fdf8ed';border='#d8c88a';color='#6b4e1a';}
+  else{grade='Needs Revision';bg='#fdf0f0';border='#f0b8b8';color='#b01c1c';}
+  badge.textContent=grade;
+  badge.style.background=bg;
+  badge.style.border=`1px solid ${border}`;
+  badge.style.color=color;
+  document.getElementById('score-panel').classList.add('show');
+  document.getElementById('score-panel').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function resetQuiz(){buildQuiz();window.scrollTo({top:0,behavior:'smooth'});}
+buildQuiz();
+</script>
+</body>
+</html>
